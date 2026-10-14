@@ -1,7 +1,7 @@
 import { normalizeGames, validDate, imageUrl } from '../shared/config.mjs';
 import { normalizeAuthors, normalizeConfig, extractGameMetadata } from '../shared/catalog.mjs';
 import { mediaUrl, cleanMedia } from '../shared/media.mjs';
-import { boardsOf, boardInfo, validateBoards } from '../shared/boards.mjs';
+import { boardsOf, boardInfo, boardAtPath, validateBoards } from '../shared/boards.mjs';
 import { collectionStatus, dispatchCollection } from './collection.mjs';
 import { publicRanking } from '../shared/snapshot.mjs';
 import { rankingSummary, gameDetails } from '../shared/public-data.mjs';
@@ -196,7 +196,11 @@ async function handle(request, env, context) {
     const pathname = (url.searchParams.get('path') ?? '/').replace(/\/$/, '') || '/';
     if (!/^\/(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$/.test(pathname) || pathname.length > 50) return json({ error: '榜单路径无效。' }, 400);
     const key = view ? `/api/ranking?view=summary&path=${encodeURIComponent(pathname)}` : '/api/ranking';
-    return cachedPublic(request, key, async () => json(view ? await projectedData(env, request, `public:summary:${pathname}`, data => rankingSummary(data, pathname), context) : (await publicData(env, request)).data), context);
+    return cachedPublic(request, key, async () => {
+      if (!view) return json((await publicData(env, request)).data);
+      const data = await projectedData(env, request, `public:summary:${pathname}`, data => boardAtPath(data.boards, pathname) ? rankingSummary(data, pathname) : null, context);
+      return data ? json(data) : json({ error: '榜单不存在。' }, 404);
+    }, context);
   }
   if (route === '/api/game' && ['GET', 'HEAD'].includes(request.method)) {
     const board = url.searchParams.get('board'), id = url.searchParams.get('id');

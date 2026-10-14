@@ -252,7 +252,7 @@ test('5000 款游戏的大快照分片保存，失败回滚，缩小快照清理
 });
 
 test('公开摘要和游戏详情独立加载，摘要缓存不重读完整快照，配置和快照变化均使摘要失效', async t => {
-  const {env}=await fixture(t);
+  const {env,sqlite}=await fixture(t);
   await worker.fetch(request('/api/admin/config',{method:'PUT',body:{...config,revision:0}}),env);
   const snapshot={schemaVersion:1,generatedAt:'2026-10-14T03:00:00Z',asOf:'2026-10-13',monthStart:'2026-10-01',
     games:[{...game,status:'ok',asOf:'2026-10-13',monthStart:'2026-10-01',revenue:{yesterday:3,month:3,total:3},history:[{date:'2026-10-13',revenue:3}]}],authors:[]};
@@ -276,6 +276,8 @@ test('公开摘要和游戏详情独立加载，摘要缓存不重读完整快�
   const detail=await (await worker.fetch(request(`/api/game?board=home&id=${game.appId}`,{authorized:false}),env)).json();
   assert.deepEqual(detail.game.history,snapshot.games[0].history);
   assert.equal((await worker.fetch(request('/api/game?board=hot&id=123'),env)).status,404);
+  assert.equal((await worker.fetch(request('/api/ranking?view=summary&path=%2Fmissing'),env)).status,404);
+  assert.equal(sqlite.prepare("SELECT count(*) AS count FROM documents WHERE key='public:summary:/missing'").get().count,0);
   assert.equal((await worker.fetch(request(route,{method:'HEAD'}),env)).status,200);
   const privateResponse=await worker.fetch(request('/api/admin/config'),env);
   assert.equal(privateResponse.headers.get('Cache-Control'),'no-store');
