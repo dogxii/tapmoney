@@ -11,8 +11,8 @@ async function github(env, route, { request, method = 'GET', body } = {}) {
   let response;
   try {
     response = await request(`https://api.github.com/repos/${repository}/actions/workflows/collect.yml/${route}`, {
-      method, headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'TapMoney' },
-      ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(15000), redirect: 'error'
+      method, headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'TapMoney' },
+      ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(15000), redirect: 'manual'
     });
   } catch { throw new Error('暂时无法连接采集任务，请稍后重试。'); }
   if (!response.ok) {

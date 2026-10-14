@@ -68,10 +68,12 @@ test('手动采集只派发固定仓库的采集工作流，并发和排队中�
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.ok(url.startsWith('https://api.github.com/repos/owner/tapmoney/actions/workflows/collect.yml/'));
     assert.equal(options.headers.Authorization, `Bearer ${env.COLLECT_TOKEN}`);
+    assert.equal(options.redirect, 'manual');
     if (options.method === 'POST') {
       dispatched++;
       assert.ok(url.endsWith('/dispatches'));
       assert.deepEqual(JSON.parse(options.body), { ref: 'main' });
+      assert.equal(options.headers['Content-Type'], 'application/json');
       return new Response(null, { status: 204 });
     }
     return new Response(JSON.stringify({ workflow_runs: [run] }));
@@ -99,6 +101,19 @@ test('采集凭证缺失或上游拒绝时明确失败，不假装采集成功�
   const failed = await worker.fetch(request('/api/admin/collect', { method: 'POST' }), env);
   assert.equal(failed.status, 503);
   const message = await failed.text(); assert.ok(message.includes('Actions')); assert.ok(!message.includes(env.COLLECT_TOKEN));
+});
+
+test('GitHub 重定向被拒绝，不转发凭证或派发采集任务', async t => {
+  const { env, sqlite } = await fixture(t);
+  env.COLLECT_REPOSITORY = 'owner/tapmoney'; env.COLLECT_TOKEN = 'github-fixture-must-not-leak';
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    calls++; assert.equal(options.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { Location: 'https://other.example/' } });
+  });
+  assert.equal((await worker.fetch(request('/api/admin/collect', { method: 'POST' }), env)).status, 503);
+  assert.equal(calls, 1);
+  assert.equal(sqlite.prepare('SELECT count(*) as count FROM documents').get().count, 0);
 });
 
 test('游戏和作者保存到数据库，冲突版本与无效绑定均不覆盖已有配置', async t => {
