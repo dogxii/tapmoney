@@ -51,12 +51,12 @@ function cleanBoard(input, asOf) {
     };
   });
   const originals = input.authors ?? [];
-  if (!Array.isArray(originals) || originals.length > 1000) throw new Error('作者列表过大。');
+  if (!Array.isArray(originals) || originals.length > 10000) throw new Error('作者列表过大。');
   const authors = normalizeAuthors(originals.map(author => ({ ...author, avatarUrl: null, qq: '', gameIds: [] }))).map(({ id, name, tapUrl }, index) => ({ id, name, avatarUrl: mediaUrl(originals[index].avatarUrl), avatarSourceUrl: imageUrl(originals[index].avatarSourceUrl), tapUrl }));
   return { games, authors };
 }
 
-async function readBody(request, limit = 256 * 1024) {
+async function readBody(request, limit = 1024 * 1024) {
   const reader = request.body?.getReader();
   if (!reader) throw new Error('缺少请求内容。');
   const chunks = []; let length = 0;
@@ -73,8 +73,36 @@ async function readBody(request, limit = 256 * 1024) {
 }
 
 async function document(db, key) {
-  const row = await db.prepare('SELECT body, revision FROM documents WHERE key = ?').bind(key).first();
-  return row ? { ...JSON.parse(row.body), revision: row.revision } : null;
+  // 一次查询读取主文档及分片，避免上传期间混读两个版本。
+  const { results } = await db.prepare('SELECT key, body, revision FROM documents WHERE key = ? OR key LIKE ?').bind(key, `${key}:%`).all();
+  const row = results.find(row => row.key === key);
+  if (!row) return null;
+  let value = JSON.parse(row.body);
+  if (key === 'snapshot' && value.format === 'chunked-json-v1') {
+    const pieces = new Map(results.map(row => [row.key, row.body]));
+    value = JSON.parse(Array.from({ length: value.parts }, (_, index) => {
+      const piece = pieces.get(`snapshot:${index}`);
+      if (piece === undefined) throw new Error('快照分片缺失。');
+      return JSON.parse(piece);
+    }).join(''));
+  }
+  return { ...value, revision: row.revision };
+}
+
+async function saveSnapshot(db, snapshot) {
+  const text = JSON.stringify(snapshot), size = 512 * 1024;
+  const now = new Date().toISOString();
+  const statements = [db.prepare("DELETE FROM documents WHERE key LIKE 'snapshot:%'")];
+  let body = text;
+  if (text.length > size) {
+    const parts = [];
+    for (let offset = 0; offset < text.length; offset += size) parts.push(text.slice(offset, offset + size));
+    // 分片编码为 JSON 字符串，跨片的 Unicode 代理对也能无损还原。
+    parts.forEach((part, index) => statements.push(db.prepare('INSERT INTO documents (key, body, updated_at) VALUES (?, ?, ?)').bind(`snapshot:${index}`, JSON.stringify(part), now)));
+    body = JSON.stringify({ format: 'chunked-json-v1', parts: parts.length });
+  }
+  statements.push(db.prepare("INSERT INTO documents (key, body, revision, updated_at) VALUES ('snapshot', ?, 1, ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, revision = documents.revision + 1, updated_at = excluded.updated_at").bind(body, now));
+  await db.batch(statements);
 }
 
 async function handle(request, env) {
@@ -124,8 +152,8 @@ async function handle(request, env) {
     return json({ ...metadata, name });
   }
   if (route === '/api/internal/snapshot' && request.method === 'PUT') {
-    const snapshot = cleanSnapshot(await readBody(request, 5 * 1024 * 1024));
-    await env.DB.prepare("INSERT INTO documents (key, body, revision, updated_at) VALUES ('snapshot', ?, 1, ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, revision = documents.revision + 1, updated_at = excluded.updated_at").bind(JSON.stringify(snapshot), new Date().toISOString()).run();
+    const snapshot = cleanSnapshot(await readBody(request, 16 * 1024 * 1024));
+    await saveSnapshot(env.DB, snapshot);
     return json({ ok: true });
   }
   if (route === '/api/ranking' && request.method === 'GET') {

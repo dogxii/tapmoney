@@ -1,3 +1,5 @@
+export const MAX_GAMES_PER_BOARD = 2000;
+
 export function validId(value, label) {
   if (!/^\d+$/.test(String(value ?? ''))) throw new Error(`${label} 必须是数字 ID。`);
   return String(value);
@@ -18,7 +20,7 @@ export function validDate(value) {
 }
 
 export function normalizeGames(list) {
-  if (!Array.isArray(list) || list.length > 500) throw new Error('游戏列表最多支持 500 款。');
+  if (!Array.isArray(list) || list.length > MAX_GAMES_PER_BOARD) throw new Error(`游戏列表最多支持 ${MAX_GAMES_PER_BOARD} 款。`);
   const ids = new Set();
   return list.map(item => {
     const appId = validId(item.appId, 'appId');

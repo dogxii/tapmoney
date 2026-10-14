@@ -13,9 +13,17 @@ async function fixture(t) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(await readFile(new URL('../server/schema.sql', import.meta.url), 'utf8'));
   t.after(() => sqlite.close());
-  const DB = { prepare(sql) {
+  const DB = { async batch(statements) {
+    sqlite.exec('BEGIN');
+    try { const results = await Promise.all(statements.map(statement => statement.run())); sqlite.exec('COMMIT'); return results; }
+    catch (error) { sqlite.exec('ROLLBACK'); throw error; }
+  }, prepare(sql) {
     const statement = sqlite.prepare(sql);
-    return { bind(...values) { return { first: async () => statement.get(...values), run: async () => ({ meta: statement.run(...values) }) }; } };
+    const bound = values => ({ first: async () => statement.get(...values), all: async () => ({results:statement.all(...values)}), run: async () => {
+      if (values.some(value => typeof value === 'string' && Buffer.byteLength(value) > 2000000)) throw new Error('D1 单值容量超限。');
+      return { meta: statement.run(...values) };
+    } });
+    return { ...bound([]), bind(...values) { return bound(values); } };
   } };
   const env = { DB, ADMIN_TOKEN_HASH: await tokenHash(token), ASSETS: { fetch: async () => new Response(JSON.stringify({ schemaVersion: 1, games: [], authors: [] })) } };
   return { env, sqlite };
@@ -206,21 +214,39 @@ test('多榜快照上传清理各榜私有字段，删除热门榜游戏不影�
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:invalid}),env)).status,400);
 });
 
-test('500 款游戏的批次快照可往返保存，待采集状态和尝试时间不丢失，自动作者可超过 300 位', async t => {
-  const {env}=await fixture(t);
-  const games=Array.from({length:500},(_,i)=>({...game,appId:String(i+1)}));
+test('2000 款游戏的大快照分片保存，失败回滚，缩小快照清理旧分片且不影响另一榜', async t => {
+  const {env,sqlite}=await fixture(t);
+  const games=Array.from({length:2000},(_,i)=>({...game,appId:String(i+1),name:`游戏 ${i} 🎮 ${'测试'.repeat(24)}`}));
   const config={boards:[{id:'home',name:'群友榜',slug:'',games:[],authors:[]},{id:'hot',name:'热门榜',slug:'hot',games,authors:[]}]};
+  assert.ok(Buffer.byteLength(JSON.stringify(config)) > 256 * 1024);
   assert.equal((await worker.fetch(request('/api/admin/config',{method:'PUT',body:{...config,revision:0}}),env)).status,200);
   const at='2026-10-14T03:00:00.000Z';
   const snapshot={schemaVersion:2,generatedAt:at,asOf:'2026-10-13',monthStart:'2026-10-01',boards:config.boards.map(b=>({...b,
-    games:b.games.map((g,i)=>({...g,authorIds:[`maker-${i}`],authorMode:'auto',status:i===0?'unavailable':'pending',...(i===0?{lastAttemptAt:at}:{}),revenue:{yesterday:null,month:null,total:null},history:[]})),
+    games:b.games.map((g,i)=>({...g,authorIds:[`maker-${i}`],authorMode:'auto',status:i===0?'unavailable':'pending',...(i===0?{lastAttemptAt:at}:{}),revenue:{yesterday:null,month:null,total:null},history:Array.from({length:31},(_,day)=>({date:`2026-09-${String(day%30+1).padStart(2,'0')}`,revenue:day+0.5}))})),
     authors:b.games.map((g,i)=>({id:`maker-${i}`,name:`作者 ${i}`}))
   }))};
+  assert.ok(Buffer.byteLength(JSON.stringify(snapshot)) > 2000000);
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:snapshot}),env)).status,200);
+  const stored=sqlite.prepare("SELECT body FROM documents WHERE key='snapshot'").get();
+  assert.equal(JSON.parse(stored.body).format,'chunked-json-v1');
+  for(const {body} of sqlite.prepare("SELECT body FROM documents WHERE key LIKE 'snapshot:%'").all()) assert.ok(Buffer.byteLength(body)<2000000);
   const saved=await (await worker.fetch(request('/api/ranking'),env)).json();
-  assert.equal(saved.boards[1].games.length,500);
-  assert.equal(saved.boards[1].authors.length,500);
+  assert.equal(saved.boards[1].games.length,2000);
+  assert.equal(saved.boards[1].authors.length,2000);
+  assert.equal(saved.boards[1].games.at(-1).name,games.at(-1).name);
+  assert.deepEqual(saved.boards[1].games.at(-1).history,snapshot.boards[1].games.at(-1).history);
   assert.equal(saved.boards[1].games[0].lastAttemptAt,at);
   assert.equal(saved.boards[1].games[1].status,'pending');
   assert.equal(saved.boards[1].games[1].revenue.total,null);
+  sqlite.exec("CREATE TRIGGER fail_snapshot BEFORE INSERT ON documents WHEN NEW.key='snapshot:1' BEGIN SELECT RAISE(ABORT,'模拟分片写入失败'); END");
+  const failed={...snapshot,generatedAt:'2026-10-14T04:00:00.000Z'};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:failed}),env)).status,400);
+  assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),saved);
+  sqlite.exec('DROP TRIGGER fail_snapshot');
+  const smaller={...snapshot,boards:snapshot.boards.map(b=>({...b,games:[],authors:[]}))};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:smaller}),env)).status,200);
+  assert.equal(sqlite.prepare("SELECT count(*) AS count FROM documents WHERE key LIKE 'snapshot:%'").get().count,0);
+  const reduced=await (await worker.fetch(request('/api/ranking'),env)).json();
+  assert.equal(reduced.boards[1].games[0].revenue.total,null);
+  assert.deepEqual(reduced.boards[0],saved.boards[0]);
 });
