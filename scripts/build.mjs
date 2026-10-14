@@ -2,7 +2,7 @@ import path from 'node:path';
 import { cp, rm } from 'node:fs/promises';
 import { ROOT, loadEnv, atomicWrite, isMain, printError } from './lib.mjs';
 import { configSource } from '../shared/config.mjs';
-import { wrangler } from './cloud.mjs';
+import { build as bundle } from 'esbuild';
 
 export async function build({ env, directory = path.join(ROOT, 'dist') } = {}) {
   env ??= await loadEnv();
@@ -17,7 +17,8 @@ export async function build({ env, directory = path.join(ROOT, 'dist') } = {}) {
   await cp(path.join(ROOT, 'site'), directory, { recursive: true });
   await atomicWrite(path.join(directory, 'runtime.js'), `export const rankingUrl = ${JSON.stringify(rankingUrl)};\nexport const adminEnabled = ${adminEnabled};\n`);
   if (adminEnabled) {
-    await wrangler(['pages', 'functions', 'build', path.join(ROOT, 'server/functions'), '--outdir', path.join(directory, '_worker.js'), '--output-routes-path', path.join(directory, '_routes.json'), '--compatibility-date', '2026-10-14'], { env });
+    await bundle({ entryPoints: [path.join(ROOT, 'server/api.mjs')], bundle: true, format: 'esm', platform: 'browser', outfile: path.join(directory, '_worker.js'), minify: true });
+    await atomicWrite(path.join(directory, '_routes.json'), JSON.stringify({ version: 1, include: ['/api/*'], exclude: [] }) + '\n');
   } else {
     await rm(path.join(directory, 'admin.js'));
   }

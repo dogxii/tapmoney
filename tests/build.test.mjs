@@ -31,3 +31,15 @@ test('公开镜像仅限无凭证的 HTTPS，在线管理不能读取另一份�
   }
   await assert.rejects(build({ env: { TAPMONEY_CONFIG_SOURCE: 'cloud', TAPMONEY_DATA_URL: 'https://example.com/ranking.json' } }));
 });
+
+test('在线管理构建只运行 API 路由，不引入 Node 运行时依赖或凭证', async t => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'tapmoney-cloud-build-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await build({ directory, env: { TAPMONEY_CONFIG_SOURCE: 'cloud', TAPMONEY_ADMIN_TOKEN: 'must-not-leak' } });
+  const worker = await readFile(path.join(directory, '_worker.js'), 'utf8');
+  const routes = JSON.parse(await readFile(path.join(directory, '_routes.json'), 'utf8'));
+  assert.ok(!worker.includes('node:'));
+  assert.ok(!worker.includes('must-not-leak'));
+  assert.deepEqual(routes.include, ['/api/*']);
+  assert.ok((await readFile(path.join(directory, 'runtime.js'), 'utf8')).includes('adminEnabled = true'));
+});

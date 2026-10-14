@@ -4,11 +4,12 @@
 
 ## 本次检查与简化
 
-- 合并重复的 Wrangler 子进程封装；部署、Functions 构建、数据库初始化共用 scripts/cloud.mjs。统一禁止自动读取 dotenv，并移除子进程中的 TapTap / 管理凭证。
+- 合并重复的 Wrangler 子进程封装；部署、数据库初始化共用 scripts/cloud.mjs。统一禁止自动读取 dotenv，并移除子进程中的 TapTap / 管理凭证。
 - 配置来源改为明确的 repository / cloud，不再根据是否存在管理 Token 自动切换。
 - 默认网页直接读同源静态 JSON，移除先请求不存在的 API 再回退的路径；仅云模式使用 API 与快照回退。
 - 配置校验不再从服务器实现导入，采集脚本与 Pages API 共用 shared/，依赖没有循环。
 - Pages Functions 只处理 /api/*；默认静态构建不编译服务器、不发布管理脚本。保留一个 API 实现，不复制 Worker / Pages 两套逻辑。
+- 管理 API 直接用 esbuild 打包为 Pages 高级模式 _worker.js，移除 Functions 路由包装与二次 Wrangler 编译产生的 Node 兼容依赖。
 - 账号专用 Worker / D1 部署配置移出源码；运行时只生成公开 URL 与管理是否启用，不嵌入凭证。
 - 新增 Actions 凭证配置命令；使用标准输入写入 Secrets。Pages Git 集成自动发布，不在 Actions 里另放 Cloudflare 部署 Token。
 - 收益的昨日、本月、累计区间查询保留：接口合计与稀疏日报不能在未证实完整时相互替代，不为减少请求而改变金额口径。
