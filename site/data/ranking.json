@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-14T10:12:48.260Z",
+  "generatedAt": "2026-10-14T10:32:44.117Z",
   "asOf": "2026-10-13",
   "monthStart": "2026-10-01",
   "timezone": "Asia/Shanghai",
@@ -52,7 +52,7 @@
           "status": "ok",
           "asOf": "2026-10-13",
           "monthStart": "2026-10-01",
-          "updatedAt": "2026-10-14T10:12:48.260Z",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
           "revenue": {
             "yesterday": 396.05,
             "month": 6663.87,
@@ -133,7 +133,7 @@
           "status": "ok",
           "asOf": "2026-10-13",
           "monthStart": "2026-10-01",
-          "updatedAt": "2026-10-14T10:12:48.260Z",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
           "revenue": {
             "yesterday": 2.6,
             "month": 74.56,
@@ -196,8 +196,2027 @@
       "id": "hot",
       "name": "热门榜",
       "slug": "hot",
-      "games": [],
-      "authors": []
+      "games": [
+        {
+          "appId": "948217",
+          "name": "海岛 树与帐篷",
+          "url": "https://www.taptap.cn/app/948217",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/7df7c86df50a37a8bdd0d23e4b0a29007dbfff5dcb14408030ba2c4b9c35380e.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FtRrqF8mZCYP7cioE2d0BNb-khnc.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/7df7c86df50a37a8bdd0d23e4b0a29007dbfff5dcb14408030ba2c4b9c35380e.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/7a08c949e89a94a2630efdbcc3de903670fb1c0cf8f3ceec7a1fde17742bb440.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/7a397d6805fe570d8162f8eb833bddc80cbbc2449d9df79fadd6bab6b8ae332f.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/a9b516bd2495b59a2015075105e3214efaa05297f17a6544389a60a2803c9097.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/8e8e32b4ae191bf5a94bed7d3116bcd9efaca5b0a5fa7fd81c797c516b02b6c7.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-26133187"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 0.27,
+            "month": 0.66,
+            "total": 0.66
+          },
+          "history": [
+            {
+              "date": "2026-10-08",
+              "revenue": 0.13
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 0.15
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 0.11
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 0.27
+            }
+          ]
+        },
+        {
+          "appId": "956393",
+          "name": "多米诺的子弹工厂",
+          "url": "https://www.taptap.cn/app/956393",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/5fb21d1a2bb9948b4dfba6e880222fa0f3618cd467764f6638af8d6b4c6549ab.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/53802806ab32dddcd6dd139ead6a7a7c.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/5fb21d1a2bb9948b4dfba6e880222fa0f3618cd467764f6638af8d6b4c6549ab.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/9138cb7031eed498572cf3cc855e10389c5e637553fbc52251a5b7e55fefffa6.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/35a3b448dfb11b36a1607fbcfe4121a0eb959cda3cb843cf69f9102f8eafdd22.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/289adfb254f1577842a64d51a6f6d7be93d9ee0bef7dbcb4dc47a9218d2ee0f3.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-670063513"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 0.68,
+            "month": 6.23,
+            "total": 6.23
+          },
+          "history": [
+            {
+              "date": "2026-10-10",
+              "revenue": 0.37
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 1.02
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 4.16
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 0.68
+            }
+          ]
+        },
+        {
+          "appId": "962291",
+          "name": "我是伪人：同化世界",
+          "url": "https://www.taptap.cn/app/962291",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/8c2d69dbeba0414e3d16a95edc5f5b015fc3efaaade50074adb1b985539720f9.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/10a6ccd02cf8784b4c376e252783b76c.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/8c2d69dbeba0414e3d16a95edc5f5b015fc3efaaade50074adb1b985539720f9.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/02189ce78c97c11535c4174acad7dc213f6f7d55ebfaeefb2ab574e664490046.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/2b42f3ab40e79117c69066640f57b0c946bf904df9052b7f1db215440b1d113a.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/7b784e507abe6f506d648f08fdf99571f28fe08ec034b48828594ff200c0ceec.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/4c75eebc6a5ecedab586452e1eef491aa9c25f7bbf51c5c894527ce88d2cc94c.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/d097739018bc9a016a9d09a07cc80b2deab2764417b811def32ad61f639ad69f.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/2736c79bd568720eca14fe13b9d2e764fed88bc7428584c37b6b3b0d4d90ee98.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-16563785"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 35.91,
+            "month": 215.6,
+            "total": 215.6
+          },
+          "history": [
+            {
+              "date": "2026-10-07",
+              "revenue": 0.05
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 5.65
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 50.58
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 52.16
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 41.75
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 29.5
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 35.91
+            }
+          ]
+        },
+        {
+          "appId": "950164",
+          "name": "吞噬进化论",
+          "url": "https://www.taptap.cn/app/950164",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/6439909816331e21fd751e36ff336cfd03caebb4e0a125d1c7fac510b9a02477.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FuizGW2InHz7Pfs400W6ckHywGou.jpg/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/6439909816331e21fd751e36ff336cfd03caebb4e0a125d1c7fac510b9a02477.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/44600a720e81dc25bff337d84e07050c6199344473d72c6b047c892d5bef749d.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/72f9bad7051047fff9e223a1e25e3de8fecc997c26b4d5d2de7faafc33986b7c.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/d2afe2ab4d5e390bcd8040883f3ee38ef4a328f8bb551bbbef43b0ff0d4c15f0.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/76dfae1eea28741d27f90eecdf4f1f13dfc03e38d2bb00fe247b154731ad3879.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/a51fe5166549ee769b01575d27630050572e1ff7b23f462041dbd02788175a76.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-62570682"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 5255.58,
+            "month": 62932.75,
+            "total": 62939.3
+          },
+          "history": [
+            {
+              "date": "2026-09-30",
+              "revenue": 6.55
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 160.81
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 1862.65
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 5173.77
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 8103.61
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 7609.96
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 5455.56
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 4808.31
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 5092.91
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 4658.26
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 4610.13
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 5209.67
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 4931.53
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 5255.58
+            }
+          ]
+        },
+        {
+          "appId": "927710",
+          "name": "GUNX竞技场",
+          "url": "https://www.taptap.cn/app/927710",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/208e2d0b86bc5fa491f3f912654c09d0df3bd041027f9c6a8c236881074560d1.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/lqAZY0_rwzDGER2hVS_qt77x5MWB.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/208e2d0b86bc5fa491f3f912654c09d0df3bd041027f9c6a8c236881074560d1.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/30d445c7037c911b8d02a5c3685d1ca4d90b197d5c256347a44694ee39ed0077.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/ca35c0522128d6806a3069d6616bb9b9d0cd8e3fb6624ef0a6bcff4fbae0d5ac.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/47eb946d4c121c83a04dad41ff208bcc461a974906e4495fd8c7bc6cea807842.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/eecce72f0e1913417677e3f2e9256dde91a6e0f1e0af1fcd77248b444668299b.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/4ea64e28414e0f83951c997c61188da92ff84c9e28c658ad72386e595afecd11.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-435049"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 0.45,
+            "month": 1.48,
+            "total": 1.48
+          },
+          "history": [
+            {
+              "date": "2026-10-04",
+              "revenue": 0.47
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 0.03
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 0.06
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 0.47
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 0.45
+            }
+          ]
+        },
+        {
+          "appId": "908690",
+          "name": "笑熬浆糊",
+          "url": "https://www.taptap.cn/app/908690",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/ab096e7f2272314681123bc33f55b5dd7c6563502d3cf4f7d5dbe30f75345cd2.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FkL_S4J6fRvhc_PEevZUF6XwD77h.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/ab096e7f2272314681123bc33f55b5dd7c6563502d3cf4f7d5dbe30f75345cd2.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/8368c8e3bbaea0c70aefaedd3ee09bc8a8e3b63cbee209e0f004e5efc34e3a9f.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/f26ceb57fd7d84c12dd5b370fa77ef343637a01e512738552d081cc55c549f30.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/ec60997e2c78081eb4640edcdb1b0ddda9783fb96080cfc88b9ff8dbb946ccbd.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-737345"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": null,
+            "month": 6.13,
+            "total": 11.08
+          },
+          "history": [
+            {
+              "date": "2026-09-24",
+              "revenue": 0.35
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 4.4
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 0.2
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 4.57
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 0.1
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 0.9
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 0.11
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 0.17
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 0.07
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 0.07
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 0.14
+            }
+          ]
+        },
+        {
+          "appId": "950863",
+          "name": "方块投影",
+          "url": "https://www.taptap.cn/app/950863",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/fe9ae94798ca546b38087de12ef009fe8b5b6bf4a62a0a4e18178b5c1b44cbf6.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FtkM94kXYzzfjj5Hn81QSjA1ER1C.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/fe9ae94798ca546b38087de12ef009fe8b5b6bf4a62a0a4e18178b5c1b44cbf6.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/a84e5de66f91901ba72f8e0c9ea43806b2f95254b93cadf397740e54877900b9.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/6f0f3329f9b9534595521dd27048d543305ed0744328349d24df7226020ab762.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/5cd7b832d023af689e60e219a5765643f7c2213302494466ce4692f982dbde1c.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-415156859"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 1.99,
+            "month": 35.74,
+            "total": 42.56
+          },
+          "history": [
+            {
+              "date": "2026-09-29",
+              "revenue": 0.06
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 6.76
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 6.53
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 4.08
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 2.01
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 4.89
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 1.95
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 2.57
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 2.89
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 2.88
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 0.8
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 0.85
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 3.1
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 1.2
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 1.99
+            }
+          ]
+        },
+        {
+          "appId": "944630",
+          "name": "耳语：ASMR助眠",
+          "url": "https://www.taptap.cn/app/944630",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/e472c2d61115b892ba4b3e14510cd725815ac7ba2402f644775ded88a31862cb.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FrV3Vq2r3iK0L_oehK7tfB8khpEq.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/e472c2d61115b892ba4b3e14510cd725815ac7ba2402f644775ded88a31862cb.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/f5c9b692a5cd2d502d2ed66f929a895317e043cdfb23d3a39ddcb4dcf6500186.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/d4e166d647030107cdf258704e13accf1368dc9d469c307aae6d4fcbe3f96a08.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/3b91bad987c7f2eb341a48001576a7ca940f4048eb201aa6b3d8d5e530af1bcc.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-34003638"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 4.62,
+            "month": 130.33,
+            "total": 147.93
+          },
+          "history": [
+            {
+              "date": "2026-09-23",
+              "revenue": 0.05
+            },
+            {
+              "date": "2026-09-24",
+              "revenue": 0.86
+            },
+            {
+              "date": "2026-09-25",
+              "revenue": 0.28
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 1.36
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 2.52
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 0.8
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 5.56
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 6.17
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 11.73
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 16.83
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 7.93
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 8.19
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 11.47
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 14.49
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 5.38
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 21.75
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 5.56
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 6.02
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 6
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 10.36
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 4.62
+            }
+          ]
+        },
+        {
+          "appId": "935154",
+          "name": "挖什么金矿",
+          "url": "https://www.taptap.cn/app/935154",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/8c638439f5ffbf9674d34dc3ff5c0d29c5140656df734e2a74fcec0a396d0842.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FhMecOfE7aptReRSbvnxwBHd4t-m.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/8c638439f5ffbf9674d34dc3ff5c0d29c5140656df734e2a74fcec0a396d0842.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/89ca119d587bded00f23ae7f2a0a6a95234ba53e94c6b076b9d16fc527c20292.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/de31836b5261dbf4abb61c709d343fa927702b4ca740dc2d7a8a8e02a8845675.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/46df8433b0956978bef1cc27bcad0bd22c7e1f404c5d83d3171c514b97f5c055.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-10799444"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 28.24,
+            "month": 494.72,
+            "total": 725.98
+          },
+          "history": [
+            {
+              "date": "2026-09-28",
+              "revenue": 1.75
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 83.33
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 146.18
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 38.41
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 57.62
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 91.25
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 55.15
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 57.82
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 30.75
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 28.16
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 24.61
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 13.33
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 27.16
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 27.54
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 14.68
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 28.24
+            }
+          ]
+        },
+        {
+          "appId": "930481",
+          "name": "王朝之路：篮球经理模拟",
+          "url": "https://www.taptap.cn/app/930481",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/30a164e4730ca159b39784ec608997264877f33a114244789488c43922ad510f.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/a2fd0fa119aba5d54e4771ae9323d276.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/30a164e4730ca159b39784ec608997264877f33a114244789488c43922ad510f.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/335d8db922cc45021cbcbfed993f6022fb5fba0af5116006f4f2e78972015a88.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/fe82bd3e0acecc1948d24db0b81e9d2e234bb0c92be5a8f828dfcd6910d55362.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/80375bbd4938be5c9a9adf9653be37de378f591d0c6bab13fdaa2b5527650d7b.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/fa37d00b0f1e244e58470d8b8d70e2a4d36c996bf57b663ebc2504a99bbccf6d.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-410457172"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 144.3,
+            "month": 1896.41,
+            "total": 2618.57
+          },
+          "history": [
+            {
+              "date": "2026-09-14",
+              "revenue": 0.01
+            },
+            {
+              "date": "2026-09-21",
+              "revenue": 0
+            },
+            {
+              "date": "2026-09-23",
+              "revenue": 0.01
+            },
+            {
+              "date": "2026-09-24",
+              "revenue": 4.94
+            },
+            {
+              "date": "2026-09-25",
+              "revenue": 24.14
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 72.55
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 123.08
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 120.26
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 146.67
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 230.5
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 154.74
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 182.35
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 235.32
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 219.98
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 144.01
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 154.02
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 147.22
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 121.86
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 91.52
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 115.05
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 89.39
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 96.65
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 144.3
+            }
+          ]
+        },
+        {
+          "appId": "947622",
+          "name": "棋横突围",
+          "url": "https://www.taptap.cn/app/947622",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/345c36ef559dbf8e64ef9a14a90262c0d02f7204f2610fd2fd73e6e2c56f1dc3.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FjILRgopqw08oHnTT140ysXdf9n7.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/345c36ef559dbf8e64ef9a14a90262c0d02f7204f2610fd2fd73e6e2c56f1dc3.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/9e7393ed93b4913c8b2e461b059f4758e770673dd7cb6dac7b050f413c56db8d.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/3eb59acec2d0901440edf791dae4dd54b4992f2c964d5c79084b242627e921a9.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/6fca6fa40d8c17919181b6b56e99741b92093fe320fd9fa2551071be7a91402f.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-766091800"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 0.04,
+            "month": 6.37,
+            "total": 9.81
+          },
+          "history": [
+            {
+              "date": "2026-09-26",
+              "revenue": 0.46
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 0.83
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 1.22
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 0.9
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 0.03
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 0.07
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 0.49
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 0.24
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 0.6
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 0.79
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 1.35
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 0.72
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 0.76
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 0.88
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 0.34
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 0.09
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 0.04
+            }
+          ]
+        },
+        {
+          "appId": "941385",
+          "name": "太空备份",
+          "url": "https://www.taptap.cn/app/941385",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/9cde3211b9f5e0d19c6c12d1cc4cfa27541981c0038429591b750e8cdcb2c286.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/b7187cd94291ff6e21c96e9f967602d8.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/9cde3211b9f5e0d19c6c12d1cc4cfa27541981c0038429591b750e8cdcb2c286.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/ae162ed5ef3cb8e0e955733ae09942744b3d70f3d9e65ee6b703456ac2f5b3d0.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/04127512019283c951f5b09aafbd4e1ec18178de57ff6c7752b2bfebb22c12a8.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/4ecac54b7eb5fefa0e4d10b17a2bfc4e12929a59c6562e3c7a5eaaef043d5f12.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/4c3aa8ecfdf5e2ecb86de77112b9fbaca7edc78d26e28c92f38053fc1f8137ca.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/913665fa850af6912db82479c81e6fc93a3c82c95f822e8c95e47bb35cb4db51.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/f21d23a5b406f3716a02f945cb917a11d07e0c753a093cde4e3e2d93256e723c.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/057bca063cea6aa4db1fa37fd58d2033824a0429c8e266aaf183219edb9f5ca6.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/afc8275494ef3a3084f7d39088fae351e49ecf1d8e2f5a177a1e0c351b175c00.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/32b150119f9657ac9b386d7af7e0665d78094c597433fa659067dc6933c79015.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-794972"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 1.54,
+            "month": 45.87,
+            "total": 199.5
+          },
+          "history": [
+            {
+              "date": "2026-09-21",
+              "revenue": 0.15
+            },
+            {
+              "date": "2026-09-22",
+              "revenue": 1.58
+            },
+            {
+              "date": "2026-09-23",
+              "revenue": 10.41
+            },
+            {
+              "date": "2026-09-24",
+              "revenue": 17.83
+            },
+            {
+              "date": "2026-09-25",
+              "revenue": 37.4
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 35.92
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 29.47
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 10.16
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 8.74
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 1.97
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 3.56
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 5.99
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 6.08
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 1.91
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 16.9
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 2.89
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 1.05
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 0.86
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 0.8
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 2.18
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 1.46
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 0.65
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 1.54
+            }
+          ]
+        },
+        {
+          "appId": "919627",
+          "name": "斗宠传说",
+          "url": "https://www.taptap.cn/app/919627",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/134b2edfa1fea537adf9e38a157580b59ada032c00573dd842d678e8dcf05d37.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FrWYFwNqF3508WAfLIKpejh2Oae5.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/134b2edfa1fea537adf9e38a157580b59ada032c00573dd842d678e8dcf05d37.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/40bf282dc52009d8491d300633d44b696756217f665da80f0c121f2617eb562d.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/2ebb4d751ef00470780284c35d886064ac7f23101117ece78c3f36a3838c69ae.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/3b4f76c0c256d1e610c96d5dcbe5cf421c9bb1a0f626021077aa271efc3fe7da.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-447996629"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 136.83,
+            "month": 1948.58,
+            "total": 6804.58
+          },
+          "history": [
+            {
+              "date": "2026-08-31",
+              "revenue": 6.42
+            },
+            {
+              "date": "2026-09-01",
+              "revenue": 25.84
+            },
+            {
+              "date": "2026-09-02",
+              "revenue": 47.37
+            },
+            {
+              "date": "2026-09-03",
+              "revenue": 34.56
+            },
+            {
+              "date": "2026-09-04",
+              "revenue": 27.06
+            },
+            {
+              "date": "2026-09-05",
+              "revenue": 47.49
+            },
+            {
+              "date": "2026-09-06",
+              "revenue": 15.9
+            },
+            {
+              "date": "2026-09-07",
+              "revenue": 19.02
+            },
+            {
+              "date": "2026-09-08",
+              "revenue": 38.98
+            },
+            {
+              "date": "2026-09-09",
+              "revenue": 26.47
+            },
+            {
+              "date": "2026-09-10",
+              "revenue": 45.59
+            },
+            {
+              "date": "2026-09-11",
+              "revenue": 48.57
+            },
+            {
+              "date": "2026-09-12",
+              "revenue": 21.63
+            },
+            {
+              "date": "2026-09-13",
+              "revenue": 19.63
+            },
+            {
+              "date": "2026-09-14",
+              "revenue": 9.48
+            },
+            {
+              "date": "2026-09-15",
+              "revenue": 27.47
+            },
+            {
+              "date": "2026-09-16",
+              "revenue": 131.08
+            },
+            {
+              "date": "2026-09-17",
+              "revenue": 209.76
+            },
+            {
+              "date": "2026-09-18",
+              "revenue": 438.63
+            },
+            {
+              "date": "2026-09-19",
+              "revenue": 494.71
+            },
+            {
+              "date": "2026-09-20",
+              "revenue": 440.79
+            },
+            {
+              "date": "2026-09-21",
+              "revenue": 423.53
+            },
+            {
+              "date": "2026-09-22",
+              "revenue": 392.81
+            },
+            {
+              "date": "2026-09-23",
+              "revenue": 304.85
+            },
+            {
+              "date": "2026-09-24",
+              "revenue": 286.92
+            },
+            {
+              "date": "2026-09-25",
+              "revenue": 300.36
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 217.12
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 200.79
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 167.76
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 212
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 173.41
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 205.77
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 147.2
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 132.86
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 157.12
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 146.42
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 143.18
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 195.05
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 211.39
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 147.21
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 118.42
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 99.07
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 108.06
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 136.83
+            }
+          ]
+        },
+        {
+          "appId": "932571",
+          "name": "火线收割",
+          "url": "https://www.taptap.cn/app/932571",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/98153dcec7b9100430499302f821e390110a688bcc663bdadde6502d15cf8962.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/e19d273a73a50dd40c7d904a2ce36252.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/98153dcec7b9100430499302f821e390110a688bcc663bdadde6502d15cf8962.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/aa607f9f7e771f5859127db470ad03b6a6e83dd1203822da52ed0b16090ef7bb.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/6e04f4af3356f3c7277e0f6fa9280f350661f9f3fcf0eef8579b19efa67c69b2.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/c1f711b3d5b4c802debec87e085f092ea321085778a21fcfd471751296d8a679.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/7e8d6b26bd247af8d58416794f2bce8115250e979bad4a0750b4d8205b6e7806.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/5c45689ac00c90cd991b5d76a12ffe47d24c8d30b82b66571ff78ea4f866e514.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-787293202"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 176.99,
+            "month": 3825.06,
+            "total": 7114.24
+          },
+          "history": [
+            {
+              "date": "2026-09-15",
+              "revenue": 0.42
+            },
+            {
+              "date": "2026-09-16",
+              "revenue": 4.1
+            },
+            {
+              "date": "2026-09-17",
+              "revenue": 71.54
+            },
+            {
+              "date": "2026-09-18",
+              "revenue": 225.44
+            },
+            {
+              "date": "2026-09-19",
+              "revenue": 256.85
+            },
+            {
+              "date": "2026-09-20",
+              "revenue": 292.73
+            },
+            {
+              "date": "2026-09-21",
+              "revenue": 199.6
+            },
+            {
+              "date": "2026-09-22",
+              "revenue": 138.28
+            },
+            {
+              "date": "2026-09-23",
+              "revenue": 105.12
+            },
+            {
+              "date": "2026-09-24",
+              "revenue": 207
+            },
+            {
+              "date": "2026-09-25",
+              "revenue": 428.89
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 365.2
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 285.49
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 244.26
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 250.39
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 213.87
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 341.29
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 416.78
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 369.13
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 380.58
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 405.24
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 271.26
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 198.31
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 229.31
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 228.38
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 264.4
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 333.48
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 209.91
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 176.99
+            }
+          ]
+        },
+        {
+          "appId": "911765",
+          "name": "系统重启中",
+          "url": "https://www.taptap.cn/app/911765",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/28f0a9bfd6544e235e037f16a6cff15387ae994d4574461032927200ffc77946.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/Fr9HYEtuPAwh20SeYhqTvUwQU5Ox.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/28f0a9bfd6544e235e037f16a6cff15387ae994d4574461032927200ffc77946.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/6180db1e8c0f2373953a70b5bb444d1ba8a28335a90e53cf49ce60b9a0fbcdda.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/cf30d48eab2c12f058652ba9828fd47d5e2fa123118ea018ca63e1aac8bc358a.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/953b3d6ddb78e401c0ace11037f5cbee673c15681d151a149ee32ae584b4b823.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/f188bfac2a9ab723de02c0550f3ae04d03687ac205d2832d29bb0710e770414a.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/64eae4519498748cb41653f78d32b8330bbffd78e018ee89618355fe1bb50d74.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-26133187"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": null,
+            "month": 2.54,
+            "total": 19.09
+          },
+          "history": [
+            {
+              "date": "2026-08-25",
+              "revenue": 0.02
+            },
+            {
+              "date": "2026-08-29",
+              "revenue": 0.22
+            },
+            {
+              "date": "2026-09-06",
+              "revenue": 0.28
+            },
+            {
+              "date": "2026-09-07",
+              "revenue": 0.15
+            },
+            {
+              "date": "2026-09-08",
+              "revenue": 0.2
+            },
+            {
+              "date": "2026-09-09",
+              "revenue": 0.02
+            },
+            {
+              "date": "2026-09-14",
+              "revenue": 2.15
+            },
+            {
+              "date": "2026-09-15",
+              "revenue": 0.16
+            },
+            {
+              "date": "2026-09-16",
+              "revenue": 1.91
+            },
+            {
+              "date": "2026-09-17",
+              "revenue": 3.25
+            },
+            {
+              "date": "2026-09-18",
+              "revenue": 0.47
+            },
+            {
+              "date": "2026-09-19",
+              "revenue": 0.26
+            },
+            {
+              "date": "2026-09-20",
+              "revenue": 0.07
+            },
+            {
+              "date": "2026-09-21",
+              "revenue": 0.6
+            },
+            {
+              "date": "2026-09-22",
+              "revenue": 2.5
+            },
+            {
+              "date": "2026-09-23",
+              "revenue": 0.77
+            },
+            {
+              "date": "2026-09-24",
+              "revenue": 0.95
+            },
+            {
+              "date": "2026-09-25",
+              "revenue": 0.83
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 0.62
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 0.5
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 0.15
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 0.24
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 0.23
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 0.11
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 0.53
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 0.47
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 0.56
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 0.45
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 0.24
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 0.13
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 0.05
+            }
+          ]
+        },
+        {
+          "appId": "933236",
+          "name": "割草小骑士",
+          "url": "https://www.taptap.cn/app/933236",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/9b4a9b8237e536e057a357c3895e22a070f179b63148e1bae4ff35ca69af57c2.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FuvB4vbiIAmky3Y9uk0ZcygyD3hu.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/9b4a9b8237e536e057a357c3895e22a070f179b63148e1bae4ff35ca69af57c2.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/853b28850efd2056d4c8f23373d2ac26386a22240e8b7c85e3b4ec25d569e6ec.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/8f209a3e12e051ae94fe1523f45f0236b12dee1f44f5f411ea07baa9b9306c38.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/f5b99b7d6f0fb77f42efb847e8a838ff6e276a435b836332edde5eab668afbe9.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-346205178"
+          ],
+          "authorMode": "auto",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T10:32:44.117Z",
+          "revenue": {
+            "yesterday": 17.75,
+            "month": 614.24,
+            "total": 1578.92
+          },
+          "history": [
+            {
+              "date": "2026-09-12",
+              "revenue": 0.13
+            },
+            {
+              "date": "2026-09-14",
+              "revenue": 3.03
+            },
+            {
+              "date": "2026-09-15",
+              "revenue": 18.06
+            },
+            {
+              "date": "2026-09-16",
+              "revenue": 51.14
+            },
+            {
+              "date": "2026-09-17",
+              "revenue": 21.09
+            },
+            {
+              "date": "2026-09-18",
+              "revenue": 11.7
+            },
+            {
+              "date": "2026-09-19",
+              "revenue": 17.78
+            },
+            {
+              "date": "2026-09-20",
+              "revenue": 22
+            },
+            {
+              "date": "2026-09-21",
+              "revenue": 59.66
+            },
+            {
+              "date": "2026-09-22",
+              "revenue": 86.11
+            },
+            {
+              "date": "2026-09-23",
+              "revenue": 61.91
+            },
+            {
+              "date": "2026-09-24",
+              "revenue": 92.79
+            },
+            {
+              "date": "2026-09-25",
+              "revenue": 96.84
+            },
+            {
+              "date": "2026-09-26",
+              "revenue": 134.81
+            },
+            {
+              "date": "2026-09-27",
+              "revenue": 73.21
+            },
+            {
+              "date": "2026-09-28",
+              "revenue": 71.2
+            },
+            {
+              "date": "2026-09-29",
+              "revenue": 66.94
+            },
+            {
+              "date": "2026-09-30",
+              "revenue": 76.28
+            },
+            {
+              "date": "2026-10-01",
+              "revenue": 81.71
+            },
+            {
+              "date": "2026-10-02",
+              "revenue": 64.83
+            },
+            {
+              "date": "2026-10-03",
+              "revenue": 80.26
+            },
+            {
+              "date": "2026-10-04",
+              "revenue": 30.14
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 41.03
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 55.45
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 53.98
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 43.93
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 33.54
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 57.81
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 37.44
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 16.37
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 17.75
+            }
+          ]
+        }
+      ],
+      "authors": [
+        {
+          "id": "tap-26133187",
+          "name": "禾忧",
+          "avatarUrl": "/media/bdf0066f84fd552a623f83e052c1202f98e5a7dd92a201e434ac535dcf5609d1.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/FsrCPZLT76Nde9sdyN0i53rNVvy8.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/26133187"
+        },
+        {
+          "id": "tap-670063513",
+          "name": "出头喵游戏工作室",
+          "avatarUrl": "/media/7d769d97974f556ebb9896fa272fbab4c6e373c5ed8d37e795724535c011c7df.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/FiXASU1F3uyeAHn-LHIQdw3fuAk-.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/670063513"
+        },
+        {
+          "id": "tap-16563785",
+          "name": "红莉栖的叉子",
+          "avatarUrl": "/media/e63230c957e3c84d24cd697d5733cf8ebcf3f076f05738ebcf19974384233dad.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fm05VbR7jdjj8Yg4wVIZvBZzgHOs.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/16563785"
+        },
+        {
+          "id": "tap-62570682",
+          "name": "哥谭市清洁工",
+          "avatarUrl": "/media/815443b8df39d5325716418fa8a57eda541f040261e9266fe388afc8de9c4ae6.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fh8emOyeQKdpR1OfCeBgXBgf9BZr.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/62570682"
+        },
+        {
+          "id": "tap-435049",
+          "name": "Esharo",
+          "avatarUrl": "/media/f6ed49ce11650a97f07219593973ebc7dc9fd387dc06afb0bc33b22482935a96.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/4fc6aecea4a0ed3fb1b8635c0a1c1710.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/435049"
+        },
+        {
+          "id": "tap-737345",
+          "name": "朝露工作室",
+          "avatarUrl": "/media/6b13e3fede933b1c1fec23223fc308a13873e0a7fd45a417bff280472be242bf.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/831da218abd5283c85d67edea82c6439.jpg/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/737345"
+        },
+        {
+          "id": "tap-415156859",
+          "name": "TBS",
+          "avatarUrl": "/media/747e4f620322d8edea830f746f7aacbad4ac677da728bc56c3d97c5a639c23f1.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/FoIQo2C-SquqNMWZD08ce4p5ir8f.jpg/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/415156859"
+        },
+        {
+          "id": "tap-34003638",
+          "name": "抗压到底",
+          "avatarUrl": "/media/e03e5151d137bb228aaa99c75b7243016cc956789e246584a651f63d9e89a666.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/FlPGrm5KM6niYNM0RlSzK8FqHKsx.jpg/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/34003638"
+        },
+        {
+          "id": "tap-10799444",
+          "name": "滑滑蛋",
+          "avatarUrl": "/media/9a1a4ba14ee87e4bd399fcc4b3b00e730717ca5be5163bf4f752a3ac65580aba.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fh48WvP9GIukfRSAfNdxKhijjjAC.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/10799444"
+        },
+        {
+          "id": "tap-410457172",
+          "name": "下一回合见",
+          "avatarUrl": "/media/993d5a3683fe223aca84d598cb75a8106c2666486475ef4d728cb4f78d0a10b0.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/default_avatars/3cebb13ed6ef5c493a1310f00df69183.jpg/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/410457172"
+        },
+        {
+          "id": "tap-766091800",
+          "name": "楠孩纸",
+          "avatarUrl": "/media/e0494737dc564aca10ba88923ff1ca1f6413db7678b7b14d6210933f00a1e0c1.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/default_avatars/633e35840ad3dae791bd82faac207344.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/766091800"
+        },
+        {
+          "id": "tap-794972",
+          "name": "酷酷哒",
+          "avatarUrl": "/media/92ec46db309ecc78c8b1a6fbf588b8e6621770c4202db3fca4564ab56e4040a0.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/6382d234ad53e584cc27a9ee43615582.jpg/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/794972"
+        },
+        {
+          "id": "tap-447996629",
+          "name": "霹雳大鸡腿",
+          "avatarUrl": "/media/014b44a073ced74d8a2e3703a409e59f050be3b5c5b045da3b1ce823b76bd6d0.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fg7fUQNEyveb6xue4Zgh1vZ0XC3L.png/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/447996629"
+        },
+        {
+          "id": "tap-787293202",
+          "name": "Frank",
+          "avatarUrl": "/media/bc8e5b6b9b50c6ef7d111007cccedf1fec17c4b895b792c652784b8644dcb05b.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/default_avatars/%E7%82%BC%E9%87%91%E6%9C%AF%E5%A3%AB.jpg/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/787293202"
+        },
+        {
+          "id": "tap-346205178",
+          "name": "sakamoto",
+          "avatarUrl": "/media/f9fd7a82d07e7eb3853b84005d675ff33a12afb97000c69dde9d36cd57a4f3b4.jpg",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/default_avatars/22441beb9a9ad127c2f1786c9ed7096a.jpg/_tap_avatar.jpg",
+          "tapUrl": "https://www.taptap.cn/user/346205178"
+        }
+      ]
     }
   ]
 }
