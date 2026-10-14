@@ -8,10 +8,6 @@ import { normalizeConfig } from '../shared/catalog.mjs';
 import { boardsOf, boardInfo } from '../shared/boards.mjs';
 import { publicRanking } from '../shared/snapshot.mjs';
 
-function mediaUrls(board) {
-  return [...board.games.flatMap(game => [game.iconUrl, ...(game.media ?? []).map(item => item.url)]), ...(board.authors ?? []).map(author => author.avatarUrl)];
-}
-
 function selectBatch(config, oldBoards, dates, size, force) {
   const selected = new Set();
   const todayStart = Date.parse(`${dates.today}T00:00:00+08:00`);
@@ -49,7 +45,6 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
     await client.get('/api/user/v1/me');
   }
   const retained = new Map(publicRanking(previous, config).boards.map(board => [board.id, board]));
-  const retainMedia = boardsOf(previous).flatMap(mediaUrls);
   const boards = [];
   let succeeded = 0;
   // 仅共用上游报表请求；榜单配置、作者和失败回退互不共用。
@@ -63,9 +58,8 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
     const kept = retained.get(board.id);
     const oldRows = new Map(kept.games.map(game => [game.appId, game]));
     const batch = board.games.filter(game => selected.has(`${board.id}:${game.appId}`));
-    // 未轮到的游戏不请求资料页、收益接口或下载图片。
-    const catalog = batch.length ? await catalogBuilder(batch, { now, retainMedia, authors: board.authors }) : { games: {}, authors: [] };
-    retainMedia.push(...mediaUrls({ games: Object.values(catalog.games), authors: catalog.authors }));
+    // 未轮到的游戏不请求资料页或收益接口。
+    const catalog = batch.length ? await catalogBuilder(batch, { now, authors: board.authors }) : { games: {}, authors: [] };
     const profiles = new Map([...kept.authors, ...catalog.authors].map(author => [author.id, author]));
     const rows = [];
     for (const game of board.games) {

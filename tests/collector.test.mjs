@@ -206,8 +206,7 @@ test('多榜采集仅复用相同工作室、游戏和日期的报表，作者�
     { id: 'studio', slug: 'studio', name: '其他工作室', games: [{ ...game, queryDeveloperId: '123' }], authors: [] }
   ] };
   const calls = [];
-  const snapshot = await collect({ env, config, outputFile, now: new Date('2026-10-14T03:00:00Z'), catalogBuilder: async (games, {authors, retainMedia}) => {
-    if (authors[0]?.name === '热门') assert.ok(retainMedia.includes('https://example.com/群友.png'));
+  const snapshot = await collect({ env, config, outputFile, now: new Date('2026-10-14T03:00:00Z'), catalogBuilder: async (games, {authors}) => {
     return { games: { [game.appId]: { iconUrl: `https://example.com/${authors[0]?.name}.png`, authorIds: authors.map(a=>a.id), authorMode: 'manual' } }, authors };
   }, client: {
     get: async () => ({}),

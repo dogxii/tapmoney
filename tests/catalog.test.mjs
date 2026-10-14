@@ -64,7 +64,7 @@ test('作者绑定优先，公开资料采集不携带后台 Cookie，缓存失�
   let requests = 0;
   const options = {
     authors: [{ id: 'maker', name: '作者', qq: '12345678', gameIds: ['959305', '42'] }],
-    cacheFile, now: new Date('2026-10-14T03:00:00Z'), wait: async () => {}, mediaCache: async value => value,
+    cacheFile, now: new Date('2026-10-14T03:00:00Z'), wait: async () => {},
     request: async (url, init) => {
       requests++;
       assert.equal(new URL(url).hostname, 'www.taptap.cn');
@@ -77,6 +77,8 @@ test('作者绑定优先，公开资料采集不携带后台 Cookie，缓存失�
   assert.deepEqual(catalog.games['959305'].authorIds, ['maker']);
   assert.deepEqual(catalog.games['42'].authorIds, ['maker']);
   assert.equal(catalog.games['42'].iconUrl, icon);
+  assert.equal(catalog.games['42'].iconSourceUrl, icon);
+  assert.equal(catalog.authors[0].avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=12345678&s=100');
   assert.equal(catalog.authors.length, 1);
   assert.ok(!('qq' in catalog.authors[0]));
   assert.ok(!('gameIds' in catalog.authors[0]));
@@ -92,7 +94,7 @@ test('资料页按三秒间隔串行请求，429 后不访问后续游戏', asyn
   const cacheFile = await cacheFixture(t);
   const events = [];
   await assert.rejects(() => buildCatalog([{ appId: '1' }, { appId: '2' }, { appId: '3' }], {
-    cacheFile, mediaCache: async value => value,
+    cacheFile,
     wait: async ms => { events.push(ms); },
     request: async url => {
       const id = new URL(url).pathname.split('/').at(-1);

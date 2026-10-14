@@ -50,7 +50,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add config/ site/data/ site/media/
+          git add config/ site/data/
           if ! git diff --cached --quiet; then
             git commit -m 'Update ranking snapshot'
             git push origin HEAD:main

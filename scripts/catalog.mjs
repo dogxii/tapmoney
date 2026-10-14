@@ -1,11 +1,10 @@
 import path from 'node:path';
 import { ROOT, readJson, atomicWrite, validId, sleep, USER_AGENT, imageUrl, RateLimitError } from './lib.mjs';
 import { normalizeAuthors, extractGameMetadata } from '../shared/catalog.mjs';
-import { cacheMedia } from './media.mjs';
 export { imageUrl, tapProfileUrl, qqAvatarUrl, normalizeAuthors, extractGameMetadata } from '../shared/catalog.mjs';
 
 export async function buildCatalog(games, {
-  authors, request = fetch, cacheFile = path.join(ROOT, '.local/game-metadata.json'), now = new Date(), refresh = false, wait = sleep, mediaCache = cacheMedia, retainMedia = []
+  authors, request = fetch, cacheFile = path.join(ROOT, '.local/game-metadata.json'), now = new Date(), refresh = false, wait = sleep
 } = {}) {
   authors = normalizeAuthors(authors ?? []);
   const cache = await readJson(cacheFile, {});
@@ -36,10 +35,10 @@ export async function buildCatalog(games, {
     const selected = bound.length ? bound : metadata?.authors ?? [];
     for (const profile of selected) {
       const { id, name, avatarUrl, tapUrl } = profile;
-      profiles.set(id, { id, name, avatarUrl, tapUrl });
+      profiles.set(id, { id, name, avatarUrl, avatarSourceUrl: avatarUrl, tapUrl });
     }
     const iconUrl = imageUrl(game.iconUrl) ?? metadata?.iconUrl ?? null;
-    entries[game.appId] = { iconUrl, media: [...(iconUrl ? [{kind: 'logo', url: iconUrl}] : []), ...(metadata?.media ?? []).filter(item => item.kind === 'screenshot')], authorIds: selected.map(author => author.id), authorMode: bound.length ? 'manual' : 'auto' };
+    entries[game.appId] = { iconUrl, iconSourceUrl: iconUrl, media: [...(iconUrl ? [{kind: 'logo', url: iconUrl}] : []), ...(metadata?.media ?? []).filter(item => item.kind === 'screenshot')], authorIds: selected.map(author => author.id), authorMode: bound.length ? 'manual' : 'auto' };
   }
-  return mediaCache({ games: entries, authors: [...profiles.values()] }, { retainMedia });
+  return { games: entries, authors: [...profiles.values()] };
 }
