@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { periods, revenueTotal, TapTapClient, AuthenticationError } from '../scripts/lib.mjs';
+import { periods, revenueTotal, TapTapClient, AuthenticationError, RateLimitError } from '../scripts/lib.mjs';
 import { collect } from '../scripts/collect.mjs';
 
 test('北京时间跨年、跨月和闰年边界', () => {
@@ -54,6 +54,24 @@ test('认证失败不重试，HTTP 暂时错误允许重试', async () => {
 test('HTTP 403 与登录过期区分，禁止错误推断游戏收益权限', async () => {
   const client = new TapTapClient({ TAPTAP_COOKIE: 'fixture', TAPTAP_REQUEST_DELAY_MS: '0' }, { wait: async () => {}, request: async () => new Response('', { status: 403 }) });
   await assert.rejects(() => client.get('/api/mini-app/v1/ad/payout-report-data'), error => !(error instanceof AuthenticationError) && error.message.includes('403'));
+});
+
+test('连续收益请求默认至少相隔三秒，429 不重试', async t => {
+  let now = 10000;
+  t.mock.method(Date, 'now', () => now);
+  const times = [];
+  const client = new TapTapClient({ TAPTAP_COOKIE: 'fixture' }, {
+    wait: async ms => { now += ms; },
+    request: async () => {
+      times.push(now);
+      return times.length === 3 ? new Response('', { status: 429, headers: { 'Retry-After': '120' } }) :
+        new Response(JSON.stringify({ success: true, data: { id: '1' } }));
+    }
+  });
+  await client.get('/api/user/v1/me');
+  await client.get('/api/user/v1/me');
+  await assert.rejects(() => client.get('/api/user/v1/me'), RateLimitError);
+  assert.deepEqual(times, [10000, 13000, 16000]);
 });
 
 async function fixture(t) {
@@ -110,6 +128,25 @@ test('认证中途失效或全部失败时不覆盖上次快照', async t => {
   await assert.rejects(() => collect({ catalogBuilder: async () => ({ games: {}, authors: [] }), env, config: { games: [game], authors: [] }, outputFile, client: { get: async () => ({}), revenue: async () => { throw new AuthenticationError(); } } }), AuthenticationError);
   assert.equal(await readFile(outputFile, 'utf8'), previous);
   await assert.rejects(() => collect({ catalogBuilder: async () => ({ games: {}, authors: [] }), env, config: { games: [game], authors: [] }, outputFile, client: { get: async () => ({}), revenue: async () => { throw new Error('failure'); } } }));
+  assert.equal(await readFile(outputFile, 'utf8'), previous);
+});
+
+test('部分采集成功后遇限流也停止后续游戏，完整保留上次快照', async t => {
+  const outputFile = await fixture(t);
+  const previous = JSON.stringify({ games: [] });
+  await writeFile(outputFile, previous);
+  const called = [];
+  await assert.rejects(() => collect({
+    env, outputFile, config: { games: [game, { ...game, appId: '2' }, { ...game, appId: '3' }], authors: [] },
+    catalogBuilder: async () => ({ games: {}, authors: [] }),
+    client: { get: async () => ({}), revenue: async (dev, app) => {
+      called.push(app);
+      if (app === '2') throw new RateLimitError();
+      return 1;
+    } }
+  }), RateLimitError);
+  assert.ok(called.includes(game.appId));
+  assert.ok(!called.includes('3'));
   assert.equal(await readFile(outputFile, 'utf8'), previous);
 });
 

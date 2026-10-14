@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { ROOT, loadEnv, readJson, atomicWrite, periods, TapTapClient, AuthenticationError, validId, revenueHistory, isMain, printError } from './lib.mjs';
+import { ROOT, loadEnv, readJson, atomicWrite, periods, TapTapClient, AuthenticationError, RateLimitError, validId, revenueHistory, isMain, printError } from './lib.mjs';
 import { buildCatalog } from './catalog.mjs';
 import { loadConfig } from './config.mjs';
 import { remoteConfig } from './sync.mjs';
@@ -63,7 +63,7 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
         succeeded++;
         console.log(`已采集 ${board.name} · ${game.name}（${game.appId}）。`);
       } catch (error) {
-        if (error instanceof AuthenticationError) throw error;
+        if (error instanceof AuthenticationError || error instanceof RateLimitError) throw error;
         const matchingTotalStart = old?.totalStartDate === game.totalStartDate;
         rows.push({
           ...base, status: old?.updatedAt ? 'stale' : 'unavailable',

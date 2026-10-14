@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildCatalog, extractGameMetadata, normalizeAuthors, imageUrl, tapProfileUrl } from '../scripts/catalog.mjs';
 import { normalizeConfig } from '../shared/catalog.mjs';
+import { RateLimitError } from '../scripts/lib.mjs';
 
 const icon = 'https://img-tc.tapimg.com/market/images/game.png/_tap_appicon.jpg';
 const avatar = 'https://img3-tc.tapimg.com/avatars/author.png/_tap_avatar.jpg';
@@ -85,4 +86,19 @@ test('作者绑定优先，公开资料采集不携带后台 Cookie，缓存失�
   assert.equal(await readFile(cacheFile, 'utf8'), saved);
   assert.equal(fallback.games['959305'].iconUrl, icon);
   assert.deepEqual(fallback.games['959305'].authorIds, ['tap-649821456']);
+});
+
+test('资料页按三秒间隔串行请求，429 后不访问后续游戏', async t => {
+  const cacheFile = await cacheFixture(t);
+  const events = [];
+  await assert.rejects(() => buildCatalog([{ appId: '1' }, { appId: '2' }, { appId: '3' }], {
+    cacheFile, mediaCache: async value => value,
+    wait: async ms => { events.push(ms); },
+    request: async url => {
+      const id = new URL(url).pathname.split('/').at(-1);
+      events.push(id);
+      return id === '1' ? new Response(html) : new Response('', { status: 429 });
+    }
+  }), RateLimitError);
+  assert.deepEqual(events, ['1', 3000, '2']);
 });

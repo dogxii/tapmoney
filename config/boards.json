@@ -44,7 +44,104 @@
       "id": "hot",
       "name": "热门榜",
       "slug": "hot",
-      "games": [],
+      "games": [
+        {
+          "appId": "948217",
+          "name": "海岛 树与帐篷",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FtRrqF8mZCYP7cioE2d0BNb-khnc.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "956393",
+          "name": "多米诺的子弹工厂",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/53802806ab32dddcd6dd139ead6a7a7c.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "962291",
+          "name": "我是伪人：同化世界",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/10a6ccd02cf8784b4c376e252783b76c.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "950164",
+          "name": "吞噬进化论",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FuizGW2InHz7Pfs400W6ckHywGou.jpg/_tap_appicon.jpg"
+        },
+        {
+          "appId": "927710",
+          "name": "GUNX竞技场",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/lqAZY0_rwzDGER2hVS_qt77x5MWB.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "908690",
+          "name": "笑熬浆糊",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FkL_S4J6fRvhc_PEevZUF6XwD77h.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "950863",
+          "name": "方块投影",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FtkM94kXYzzfjj5Hn81QSjA1ER1C.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "944630",
+          "name": "耳语：ASMR助眠",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FrV3Vq2r3iK0L_oehK7tfB8khpEq.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "935154",
+          "name": "挖什么金矿",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FhMecOfE7aptReRSbvnxwBHd4t-m.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "930481",
+          "name": "王朝之路：篮球经理模拟",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/a2fd0fa119aba5d54e4771ae9323d276.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "947622",
+          "name": "棋横突围",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FjILRgopqw08oHnTT140ysXdf9n7.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "941385",
+          "name": "太空备份",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/b7187cd94291ff6e21c96e9f967602d8.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "919627",
+          "name": "斗宠传说",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FrWYFwNqF3508WAfLIKpejh2Oae5.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "932571",
+          "name": "火线收割",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/e19d273a73a50dd40c7d904a2ce36252.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "911765",
+          "name": "系统重启中",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/Fr9HYEtuPAwh20SeYhqTvUwQU5Ox.png/_tap_appicon.jpg"
+        },
+        {
+          "appId": "933236",
+          "name": "割草小骑士",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FuvB4vbiIAmky3Y9uk0ZcygyD3hu.png/_tap_appicon.jpg"
+        }
+      ],
       "authors": []
     }
   ]

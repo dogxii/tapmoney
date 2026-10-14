@@ -69,13 +69,17 @@ export class AuthenticationError extends Error {
   constructor() { super('开发者后台登录会话已失效或未被接受，请运行 npm run login 重新登录。'); }
 }
 
+export class RateLimitError extends Error {
+  constructor() { super('TapTap 触发请求限流（HTTP 429），已停止本轮采集，请稍后再试。'); }
+}
+
 export class TapTapClient {
   constructor(env, { request = fetch, wait = sleep } = {}) {
     if (!env.TAPTAP_COOKIE) throw new Error('还没有开发者后台登录凭证，请先运行 npm run login。');
     this.cookie = env.TAPTAP_COOKIE;
     this.request = request;
     this.wait = wait;
-    this.delay = Number(env.TAPTAP_REQUEST_DELAY_MS ?? 1500);
+    this.delay = Number(env.TAPTAP_REQUEST_DELAY_MS ?? 3000);
     if (!Number.isFinite(this.delay) || this.delay < 0) throw new Error('TAPTAP_REQUEST_DELAY_MS 必须是非负数字。');
     this.nextRequestAt = 0;
   }
@@ -99,7 +103,8 @@ export class TapTapClient {
       }
       if (response.status === 401) throw new AuthenticationError();
       if (response.status === 403) throw new Error('TapTap 拒绝本次接口访问（HTTP 403）；不代表登录会话已过期。');
-      if (response.status === 429 || response.status >= 500) {
+      if (response.status === 429) throw new RateLimitError();
+      if (response.status >= 500) {
         if (attempt < 2) { await this.wait(2000 * (attempt + 1)); continue; }
       }
       if (!response.ok) throw new Error(`TapTap 接口请求失败（HTTP ${response.status}）。`);
