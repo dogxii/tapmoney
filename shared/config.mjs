@@ -1,4 +1,4 @@
-export const MAX_GAMES_PER_BOARD = 2000;
+export const MAX_GAMES_PER_BOARD = 5000;
 
 export function validId(value, label) {
   if (!/^\d+$/.test(String(value ?? ''))) throw new Error(`${label} 必须是数字 ID。`);

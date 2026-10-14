@@ -214,9 +214,9 @@ test('多榜快照上传清理各榜私有字段，删除热门榜游戏不影�
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:invalid}),env)).status,400);
 });
 
-test('2000 款游戏的大快照分片保存，失败回滚，缩小快照清理旧分片且不影响另一榜', async t => {
+test('5000 款游戏的大快照分片保存，失败回滚，缩小快照清理旧分片且不影响另一榜', async t => {
   const {env,sqlite}=await fixture(t);
-  const games=Array.from({length:2000},(_,i)=>({...game,appId:String(i+1),name:`游戏 ${i} 🎮 ${'测试'.repeat(24)}`}));
+  const games=Array.from({length:5000},(_,i)=>({...game,appId:String(i+1),name:`游戏 ${i} 🎮 ${'测试'.repeat(8)}`}));
   const config={boards:[{id:'home',name:'群友榜',slug:'',games:[],authors:[]},{id:'hot',name:'热门榜',slug:'hot',games,authors:[]}]};
   assert.ok(Buffer.byteLength(JSON.stringify(config)) > 256 * 1024);
   assert.equal((await worker.fetch(request('/api/admin/config',{method:'PUT',body:{...config,revision:0}}),env)).status,200);
@@ -231,8 +231,8 @@ test('2000 款游戏的大快照分片保存，失败回滚，缩小快照清理
   assert.equal(JSON.parse(stored.body).format,'chunked-json-v1');
   for(const {body} of sqlite.prepare("SELECT body FROM documents WHERE key LIKE 'snapshot:%'").all()) assert.ok(Buffer.byteLength(body)<2000000);
   const saved=await (await worker.fetch(request('/api/ranking'),env)).json();
-  assert.equal(saved.boards[1].games.length,2000);
-  assert.equal(saved.boards[1].authors.length,2000);
+  assert.equal(saved.boards[1].games.length,5000);
+  assert.equal(saved.boards[1].authors.length,5000);
   assert.equal(saved.boards[1].games.at(-1).name,games.at(-1).name);
   assert.deepEqual(saved.boards[1].games.at(-1).history,snapshot.boards[1].games.at(-1).history);
   assert.equal(saved.boards[1].games[0].lastAttemptAt,at);
