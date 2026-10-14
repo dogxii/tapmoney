@@ -57,6 +57,9 @@ test('HTTP 403 与登录过期区分，禁止错误推断游戏收益权限', as
 });
 
 async function fixture(t) {
+  // 预期的采集失败不写入测试进程的日志管道。
+  t.mock.method(console, 'log', () => {});
+  t.mock.method(console, 'error', () => {});
   const directory = await mkdtemp(path.join(tmpdir(), 'tapmoney-test-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   return path.join(directory, 'ranking.json');
