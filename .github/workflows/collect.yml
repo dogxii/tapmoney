@@ -1,0 +1,57 @@
+name: Update ranking
+
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'config/**'
+      - 'scripts/**'
+      - 'shared/**'
+      - 'package*.json'
+      - '.github/workflows/collect.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ranking
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAPMONEY_CONFIG_SOURCE: ${{ vars.TAPMONEY_CONFIG_SOURCE || 'repository' }}
+      TAPMONEY_API_URL: ${{ vars.TAPMONEY_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run collect
+        env:
+          TAPMONEY_ADMIN_TOKEN: ${{ secrets.TAPMONEY_ADMIN_TOKEN }}
+          TAPTAP_COOKIE: ${{ secrets.TAPTAP_COOKIE }}
+          TAPTAP_DEVELOPER_ID: ${{ secrets.TAPTAP_DEVELOPER_ID }}
+      - if: env.TAPMONEY_CONFIG_SOURCE == 'cloud'
+        run: npm run snapshot:upload
+        env:
+          TAPMONEY_ADMIN_TOKEN: ${{ secrets.TAPMONEY_ADMIN_TOKEN }}
+      - name: Commit public snapshot
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/ site/data/ site/media/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update ranking snapshot'
+            git push origin HEAD:main
+          fi

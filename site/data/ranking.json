@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-14T05:53:16.281Z",
+  "asOf": "2026-10-13",
+  "monthStart": "2026-10-01",
+  "timezone": "Asia/Shanghai",
+  "currency": "CNY",
+  "source": "TapTap 小游戏广告收益报表",
+  "games": [
+    {
+      "appId": "959305",
+      "name": "增量牧场",
+      "url": "https://www.taptap.cn/app/959305",
+      "totalStartDate": "2020-01-01",
+      "iconUrl": "/media/e5dd084fae65c41cd2d259bd612f18ede477b694f576e4fa0f1cd22bf3d5ed4c.png",
+      "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FuUsuclpmW7Xm-QqLh0wcG6sr4hK.png/_tap_appicon.jpg",
+      "media": [
+        {
+          "kind": "logo",
+          "url": "/media/e5dd084fae65c41cd2d259bd612f18ede477b694f576e4fa0f1cd22bf3d5ed4c.png"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/89c348c9fc6f7fd9baa716958cd890cc05a1f7241abbe2808c9d811ec122fff7.jpg"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/811566dfdddc5af41ad6e0eb65cc9933a46d45bcc204dea1b894ab3aef27e91e.jpg"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/df6506346287dc5c3f670d2ceff37237d0dbb67df1d6956507405651eaa20f48.jpg"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/4454ff1cca045800513baef8bf95cf0dae9d528257c9c797022e48594441d383.jpg"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/6cda2ae0d6b380b1aee52b4a92070022fb6d79ebc34dca93f7ba187b90bc1220.jpg"
+        }
+      ],
+      "authorIds": [
+        "tap-649821456"
+      ],
+      "status": "ok",
+      "asOf": "2026-10-13",
+      "monthStart": "2026-10-01",
+      "updatedAt": "2026-10-14T05:53:16.281Z",
+      "revenue": {
+        "yesterday": 396.05,
+        "month": 6663.87,
+        "total": 6663.87
+      },
+      "history": [
+        {
+          "date": "2026-10-04",
+          "revenue": 25.61
+        },
+        {
+          "date": "2026-10-05",
+          "revenue": 239.66
+        },
+        {
+          "date": "2026-10-06",
+          "revenue": 720.89
+        },
+        {
+          "date": "2026-10-07",
+          "revenue": 1196.71
+        },
+        {
+          "date": "2026-10-08",
+          "revenue": 1009.73
+        },
+        {
+          "date": "2026-10-09",
+          "revenue": 1027.72
+        },
+        {
+          "date": "2026-10-10",
+          "revenue": 878.56
+        },
+        {
+          "date": "2026-10-11",
+          "revenue": 638.9
+        },
+        {
+          "date": "2026-10-12",
+          "revenue": 530.04
+        },
+        {
+          "date": "2026-10-13",
+          "revenue": 396.05
+        }
+      ]
+    }
+  ],
+  "authors": [
+    {
+      "id": "tap-649821456",
+      "name": "好想成为人类啊",
+      "avatarUrl": "/media/3c914cc7a749a7ec217fcc90281817df1d2a852fce08e5bcb2a651b0ad5adee1.jpg",
+      "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png/_tap_avatar.jpg",
+      "tapUrl": "https://www.taptap.cn/user/649821456"
+    }
+  ]
+}
