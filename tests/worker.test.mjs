@@ -171,7 +171,7 @@ test('云端快照仅保存公开收益字段，访客无需 Token 即可读取'
   assert.ok(!saved.includes('275960'));
   const response = await worker.fetch(request('/api/ranking', { authorized: false }), env);
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(response.headers.get('Cache-Control'), 'public, max-age=60, must-revalidate');
   const data = await response.json();
   assert.deepEqual(data.boards[0].games[0].history, [{ date: '2026-10-13', revenue: 3 }]);
   assert.equal(data.boards[0].games[0].iconUrl, local);
@@ -249,4 +249,34 @@ test('5000 款游戏的大快照分片保存，失败回滚，缩小快照清理
   const reduced=await (await worker.fetch(request('/api/ranking'),env)).json();
   assert.equal(reduced.boards[1].games[0].revenue.total,null);
   assert.deepEqual(reduced.boards[0],saved.boards[0]);
+});
+
+test('公开摘要和游戏详情独立加载，摘要缓存不重读完整快照，配置和快照变化均使摘要失效', async t => {
+  const {env}=await fixture(t);
+  await worker.fetch(request('/api/admin/config',{method:'PUT',body:{...config,revision:0}}),env);
+  const snapshot={schemaVersion:1,generatedAt:'2026-10-14T03:00:00Z',asOf:'2026-10-13',monthStart:'2026-10-01',
+    games:[{...game,status:'ok',asOf:'2026-10-13',monthStart:'2026-10-01',revenue:{yesterday:3,month:3,total:3},history:[{date:'2026-10-13',revenue:3}]}],authors:[]};
+  await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:snapshot}),env);
+  const route='/api/ranking?view=summary&path=%2F';
+  const first=await worker.fetch(request(route,{authorized:false}),env);
+  const data=await first.json();assert.equal(data.summary,true);assert.ok(!('history' in data.boards[0].games[0]));
+  assert.deepEqual(data.boards[1].games,[]);
+  let reads=0;
+  const prepare=env.DB.prepare;
+  env.DB.prepare=sql=>{reads++;return prepare(sql);};
+  assert.deepEqual(await (await worker.fetch(request(route),env)).json(),data);
+  assert.equal(reads,1);
+  const current=await (await worker.fetch(request('/api/admin/config'),env)).json();current.boards[0].games[0].name='修改名称';
+  await worker.fetch(request('/api/admin/config',{method:'PUT',body:current}),env);
+  const updated=await (await worker.fetch(request(route),env)).json();
+  assert.equal(updated.boards[0].games[0].name,'修改名称');
+  snapshot.games[0].revenue.total=9;
+  await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:snapshot}),env);
+  assert.equal((await (await worker.fetch(request(route),env)).json()).boards[0].games[0].revenue.total,9);
+  const detail=await (await worker.fetch(request(`/api/game?board=home&id=${game.appId}`,{authorized:false}),env)).json();
+  assert.deepEqual(detail.game.history,snapshot.games[0].history);
+  assert.equal((await worker.fetch(request('/api/game?board=hot&id=123'),env)).status,404);
+  assert.equal((await worker.fetch(request(route,{method:'HEAD'}),env)).status,200);
+  const privateResponse=await worker.fetch(request('/api/admin/config'),env);
+  assert.equal(privateResponse.headers.get('Cache-Control'),'no-store');
 });

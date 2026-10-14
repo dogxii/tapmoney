@@ -69,12 +69,12 @@ npm run preview
 3. 在仓库 Actions 手动运行 **Update ranking**，检查一次真实采集。之后每小时 **30 分** 处理一批（GitHub 定时任务可能延迟）。默认每批最多 40 款，先跳过已取得昨日数据的游戏，再按最久未尝试的顺序续采；同一游戏当天失败后让出队列，次日重试。群友榜先于热门榜安排，两个榜单的数据和作者仍独立。
 
 ```text
-本地登录 → Actions Secrets → 每小时分批续采 → 提交公开 JSON / 图片
+本地登录 → Actions Secrets → 每小时分批续采 → 提交公开 JSON
                                              ↓
                                   Pages Git 自动构建 → 访客
 ```
 
-`Update ranking` 也会在游戏配置 / 采集代码修改后运行。它先测试，再采集；未轮到的游戏不会请求收益或资料页。每批保留其他游戏的金额、历史、作者和图片，旧日期的数据标记为历史数据，新游戏显示待采集。失败游戏记录尝试时间并保留原金额与日期，不会阻塞后续游戏；登录过期或 HTTP 429 则停止整轮且不覆盖快照。当日全部处理完后，后续任务不再请求 TapTap，次日重新轮转。提交仅包含公开配置、收益数据、公开尝试时间和图片；`.env.local`、浏览器 profile、Token、日志和构建产物都排除在 Git 外。
+`Update ranking` 也会在游戏配置 / 采集代码修改后运行。它先测试，再采集；未轮到的游戏不会请求收益或资料页。每批保留其他游戏的金额、历史、作者和图片链接，旧日期的数据标记为历史数据，新游戏显示待采集。失败游戏记录尝试时间并保留原金额与日期，不会阻塞后续游戏；登录过期或 HTTP 429 则停止整轮且不覆盖快照。当日全部处理完后，后续任务不再请求 TapTap，次日重新轮转。提交仅包含公开配置、收益数据、公开尝试时间和图片链接；`.env.local`、浏览器 profile、Token、日志和构建产物都排除在 Git 外。
 
 `TAPMONEY_BATCH_SIZE` 可调整每批数量（默认 40，范围 1–500）；`npm run collect -- --force` 可在批次上限内重采已处理过的游戏。4,934 款名单约需 124 批完成首轮；默认每小时一批每天最多处理 960 款，无法保证全部游戏每天都更新。各游戏显示自己的统计日期，不能把尚未采集的数据当作零收益。
 
@@ -121,7 +121,11 @@ npm run collect:setup -- 你的用户名/仓库名 --token-file .local/github-ac
 
 ## JSON / jsDelivr
 
-主站默认读取 Pages 同源 `/data/ranking.json`，云模式读取同源 `/api/ranking`。公开快照也保存在 Git 仓库，第三方可读取固定 commit 的镜像：
+主站首屏按榜单读取摘要：静态模式为 `/data/boards/index.json`、`/data/boards/hot.json`，云模式为 `/api/ranking?view=summary&path=...`。摘要只包含当前榜单的排行字段，点击游戏时再加载该游戏的日报和素材链接；重复打开复用当前页面缓存。表格每页 100 款，全榜搜索、排序、合计与导出在本地完成，翻页不请求后端。统计、导出和管理模块按需加载。
+
+构建后的 JS / CSS 使用内容指纹及一年不可变缓存，版本更新会自动换 URL。公开 JSON / API 缓存 60 秒并支持条件请求；云端使用边缘缓存，边缘未命中时优先读取 D1 中与配置、快照版本对应的摘要，避免每次读取完整历史。管理接口不缓存，手动刷新及管理保存后主动重新验证；其他访客可能在短暂缓存期内看到旧数据。API 不可用时回退构建时的静态数据。
+
+完整快照仍保留在 `/data/ranking.json`、`/api/ranking` 和 Git 仓库，第三方可读取固定 commit 的镜像：
 
 ```text
 https://cdn.jsdelivr.net/gh/dogxii/tapmoney@<commit>/site/data/ranking.json
@@ -129,7 +133,7 @@ https://cdn.jsdelivr.net/gh/dogxii/tapmoney@<commit>/site/data/ranking.json
 
 快照采用 `schemaVersion: 2`，公共日期字段在顶层，`boards[]` 包含各榜的 `id`、`slug`、`name`、`games` 和 `authors`。域名根目录托管，使用 Pages 默认的 SPA 回退（不添加顶层 `404.html`），直接访问或刷新 `/hot/` 也能加载。其他托管平台需要配置未匹配的页面路径回退到 `index.html`。
 
-`@main` 有 CDN 缓存延迟，不保证每日立即更新；主站不依赖它。仓库模式可在构建环境设置 `TAPMONEY_DATA_URL` 使用公开 HTTPS 镜像，图片仍需同步发布到网站。
+`@main` 有 CDN 缓存延迟，不保证每日立即更新；主站不依赖它。仓库模式可在构建环境设置 `TAPMONEY_DATA_URL` 使用完整快照的公开 HTTPS 镜像，此时读取该镜像的完整 JSON。图片使用快照中的 TapTap / QQ 原链接。
 
 ## 数据与导出
 

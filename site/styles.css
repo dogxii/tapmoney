@@ -104,6 +104,15 @@ td.numeric:last-child, th.numeric:last-child { padding-right: 22px; }
 .updated { display: flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
 .updated .icon { width: 12px; height: 12px; }
 .empty { padding: 36px 20px; text-align: center; color: var(--muted); font-size: 12px; }
+.loading-state { padding: 25px 22px; display: grid; gap: 30px; }
+.loading-state span { display: block; height: 39px; border-radius: 7px; background: linear-gradient(90deg, var(--hover) 25%, var(--selected) 50%, var(--hover) 75%); background-size: 200% 100%; animation: shimmer 1.5s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.pagination { display: flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+.pagination .icon-button { width: 25px; height: 28px; }
+.pagination #page-prev .icon { transform: rotate(90deg); }
+.pagination #page-next .icon { transform: rotate(-90deg); }
+.pagination button:disabled { cursor: default; opacity: .25; }
+.text-button { border: 0; background: transparent; color: var(--blue); padding: 6px 0; }
 .refreshing .icon { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .manage-entry { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); width: 32px; height: 32px; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--muted); opacity: .28; transition: opacity .2s, background .2s; }
@@ -249,7 +258,8 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   td.numeric { font-size: 11px; white-space: nowrap; }
   td.numeric, th.numeric { min-width: 100px; padding-left: 10px; padding-right: 10px; }
   td.numeric:last-child, th.numeric:last-child { padding-right: 14px; }
-  .ranking-footer { padding: 0 14px; gap: 10px; font-size: 9px; }
+  .ranking-footer { padding: 10px 14px; gap: 8px 10px; flex-wrap: wrap; font-size: 9px; }
+  .ranking-footer .updated { margin-left: auto; }
   .ranking-footer > div { gap: 7px; }
   .ranking-footer strong { font-size: 10px; }
   .updated .icon { width: 11px; height: 11px; }

@@ -1,5 +1,5 @@
 import { node, portrait, iconButton, icon } from './ui.js';
-import { boardPath } from '/shared/boards.mjs';
+import { boardPath } from '../shared/boards.mjs';
 
 export function initAdmin({ onSaved, getBoardId }) {
   const dialog = document.querySelector('#admin-dialog');
@@ -257,14 +257,14 @@ export function initAdmin({ onSaved, getBoardId }) {
       finally { view.submit.disabled = false; }
     });
   }
-  entry.addEventListener('click', async () => {
+  const open = async () => {
     if (!dialog.open) dialog.showModal();
     if (!token) { showLogin(); return; }
     dialog.replaceChildren(header('管理'), message('正在加载'));
     try { config = await api('/api/admin/config'); syncEntry(); selectCurrentBoard(); showPanel(); checkCollection(); }
     catch (error) { showLogin(error.message); }
-  });
+  };
   dialog.addEventListener('close', () => { clearTimeout(collectionTimer); if (!config) dialog.replaceChildren(); });
   syncEntry();
-  if (token) api('/api/admin/config').then(data => { config = data; syncEntry(); }).catch(() => { token = ''; remember(); });
+  return open;
 }

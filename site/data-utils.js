@@ -50,6 +50,7 @@ function percent(current, baseline) {
 }
 
 export function periodGrowth(game, metric, snapshot) {
+  if (game.growth) return game.growth[metric] ?? null;
   const current = metricValue(game, metric, snapshot);
   if (current === null || !snapshot.asOf) return null;
   if (metric === 'yesterday') return dailyGrowth(game.history ?? [], snapshot.asOf);
@@ -72,7 +73,8 @@ export function periodGrowth(game, metric, snapshot) {
   return percent(current, sum);
 }
 
-function previousValue(game, metric, snapshot) {
+export function previousValue(game, metric, snapshot) {
+  if (game.previousRevenue) return game.previousRevenue[metric] ?? null;
   const current = metricValue(game, metric, snapshot);
   if (current === null || game.asOf !== snapshot.asOf) return null;
   const before = dayBefore(snapshot.asOf);

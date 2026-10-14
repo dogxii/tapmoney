@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, access, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, access, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { build } from '../scripts/build.mjs';
@@ -25,8 +25,16 @@ test('默认构建不包含服务器和管理代码，凭证不会进入运行�
   await assert.rejects(access(path.join(directory, '.env.local')));
   // Pages 默认 SPA 回退需要没有顶层 404.html；子路径资源始终从根目录读取。
   await assert.rejects(access(path.join(directory, '404.html')));
-  assert.ok((await readFile(path.join(directory, 'index.html'), 'utf8')).includes('src="/app.js"'));
+  const html = await readFile(path.join(directory, 'index.html'), 'utf8');
+  assert.match(html, /src="\/assets\/app-[A-Z0-9]+\.js"/);
+  for (const [, file] of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) await access(path.join(directory, file));
+  const scripts = (await Promise.all((await readdir(path.join(directory, 'assets'))).filter(file=>file.endsWith('.js')).map(file=>readFile(path.join(directory,'assets',file),'utf8')))).join('\n');
+  assert.ok(!scripts.includes('/api/admin/config') && !scripts.includes('must-not-leak'));
   assert.ok((await readFile(path.join(directory, 'shared/boards.mjs'), 'utf8')).includes('boardAtPath'));
+  const summary = JSON.parse(await readFile(path.join(directory, 'data/boards/index.json'), 'utf8'));
+  assert.equal(summary.summary, true);
+  assert.ok(summary.boards.filter(board=>board.slug).every(board=>!board.games.length));
+  assert.ok(summary.boards.flatMap(board=>board.games).every(game=>!('history' in game) && !('media' in game)));
 });
 
 test('公开镜像仅限无凭证的 HTTPS，在线管理不能读取另一份镜像', async () => {
