@@ -2,12 +2,14 @@ import { money, node, portrait, authorLink } from './ui.js';
 import { showGameDetails } from './stats.js';
 import { rankingUrl, adminEnabled } from './runtime.js';
 import { metricValue, rankingRows, periodGrowth } from './data-utils.js';
+import { boardsOf, validateBoards, boardAtPath, boardPath, boardSnapshot } from '/shared/boards.mjs';
 const metrics = { yesterday: '昨日', month: '本月', total: '累计' };
 const dateTime = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 let snapshot;
 let metric = 'yesterday';
 let profiles = new Map();
 let visibleRows = [];
+document.querySelector('#board-select').addEventListener('change', event => { location.href = event.target.value; });
 
 function value(game, key) {
   return metricValue(game, key, snapshot);
@@ -133,12 +135,26 @@ async function load() {
   button.disabled = true; button.classList.add('refreshing');
   try {
     let response = await fetch(rankingUrl, { cache: 'no-store' });
-    if (!response.ok && adminEnabled) response = await fetch('./data/ranking.json', { cache: 'no-store' });
+    if (!response.ok && adminEnabled) response = await fetch('/data/ranking.json', { cache: 'no-store' });
     if (!response.ok) throw new Error();
     const data = await response.json();
-    if (data.schemaVersion !== 1 || !Array.isArray(data.games)) throw new Error();
-    snapshot = data;
-    profiles = new Map((data.authors ?? []).map(author => [author.id, author]));
+    if (!(data.schemaVersion === 1 && Array.isArray(data.games) || data.schemaVersion === 2 && Array.isArray(data.boards))) throw new Error();
+    const boards = validateBoards(boardsOf(data));
+    if (boards.some(board => !Array.isArray(board.games) || !Array.isArray(board.authors))) throw new Error();
+    const board = boardAtPath(boards, location.pathname);
+    const navigation = document.querySelector('#board-select'); navigation.replaceChildren();
+    for (const item of boards) { const option = node('option', '', item.name); option.value = boardPath(item); navigation.append(option); }
+    navigation.hidden = boards.length < 2;
+    if (!board) { const option = node('option', '', '选择榜单'); option.value = ''; option.disabled = true; navigation.prepend(option); }
+    navigation.value = board ? boardPath(board) : '';
+    document.querySelector('h1').textContent = board?.name ?? '榜单不存在';
+    document.title = `TapMoney · ${board?.name ?? '榜单不存在'}`;
+    document.querySelector('.ranking').hidden = !board;
+    document.querySelector('.heading-tools').hidden = !board;
+    document.querySelector('.as-of').hidden = !board;
+    notice(''); snapshot = board ? boardSnapshot(data, board) : null;
+    if (!snapshot) return;
+    profiles = new Map(snapshot.authors.map(author => [author.id, author]));
     const select = document.querySelector('#author-select');
     const selection = select.value;
     select.replaceChildren(node('option', '', '全部作者'));
@@ -159,10 +175,10 @@ async function load() {
   } catch { notice(snapshot ? '暂时无法刷新' : '暂时无法加载', true); }
   finally { button.disabled = false; button.classList.remove('refreshing'); }
 }
-document.querySelector('#refresh').addEventListener('click', load);
+document.querySelector('#refresh').addEventListener('click', () => load());
 load();
 if (adminEnabled) {
   document.querySelector('#manage-open').hidden = false;
   const { initAdmin } = await import('./admin.js');
-  initAdmin({ onSaved: load });
+  initAdmin({ getBoardId: () => snapshot?.id, onSaved: async path => { if (path) history.replaceState(null, '', path); await load(); } });
 }

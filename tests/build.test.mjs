@@ -17,12 +17,16 @@ test('默认构建不包含服务器和管理代码，凭证不会进入运行�
   t.after(() => rm(directory, { recursive: true, force: true }));
   await build({ directory, env: { TAPTAP_COOKIE: 'must-not-leak', TAPMONEY_ADMIN_TOKEN: 'must-not-leak' } });
   const runtime = await readFile(path.join(directory, 'runtime.js'), 'utf8');
-  assert.ok(runtime.includes('./data/ranking.json'));
+  assert.ok(runtime.includes('/data/ranking.json'));
   assert.ok(runtime.includes('adminEnabled = false'));
   assert.ok(!runtime.includes('must-not-leak'));
   await assert.rejects(access(path.join(directory, '_worker.js')));
   await assert.rejects(access(path.join(directory, 'admin.js')));
   await assert.rejects(access(path.join(directory, '.env.local')));
+  // Pages 默认 SPA 回退需要没有顶层 404.html；子路径资源始终从根目录读取。
+  await assert.rejects(access(path.join(directory, '404.html')));
+  assert.ok((await readFile(path.join(directory, 'index.html'), 'utf8')).includes('src="/app.js"'));
+  assert.ok((await readFile(path.join(directory, 'shared/boards.mjs'), 'utf8')).includes('boardAtPath'));
 });
 
 test('公开镜像仅限无凭证的 HTTPS，在线管理不能读取另一份镜像', async () => {

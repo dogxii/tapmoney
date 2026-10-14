@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { ROOT, loadEnv, readJson, atomicWrite, isMain, printError } from './lib.mjs';
 import { normalizeConfig } from '../shared/catalog.mjs';
+import { loadConfig } from './config.mjs';
 
 export async function adminRequest(route, { env, method = 'GET', body } = {}) {
   env ??= await loadEnv();
@@ -22,8 +23,7 @@ export async function remoteConfig(env) {
   const saved = await adminRequest('/api/admin/config', { env });
   if (saved.revision === 0) throw new Error('云端配置尚未初始化，请运行 npm run admin:seed。');
   const config = normalizeConfig(saved);
-  await atomicWrite(path.join(ROOT, 'config/games.json'), JSON.stringify(config.games, null, 2) + '\n');
-  await atomicWrite(path.join(ROOT, 'config/authors.json'), JSON.stringify(config.authors, null, 2) + '\n');
+  await atomicWrite(path.join(ROOT, 'config/boards.json'), JSON.stringify(config, null, 2) + '\n');
   return config;
 }
 
@@ -39,9 +39,9 @@ if (isMain(import.meta.url)) {
     if (process.argv.includes('--snapshot')) { await uploadSnapshot(env); return; }
     const current = await adminRequest('/api/admin/config', { env });
     if (current.revision === 0) {
-      const config = normalizeConfig({ games: await readJson(path.join(ROOT, 'config/games.json')), authors: await readJson(path.join(ROOT, 'config/authors.json'), []) });
+      const config = await loadConfig();
       await adminRequest('/api/admin/config', { env, method: 'PUT', body: { ...config, revision: 0 } });
-      console.log('已初始化云端游戏与作者配置。');
+      console.log('已初始化云端榜单配置。');
     }
     await uploadSnapshot(env);
   })().catch(printError);

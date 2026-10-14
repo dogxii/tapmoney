@@ -18,30 +18,40 @@ npm run preview
 
 `login` 打开独立 Chrome，登录 TapTap 开发者后台并进入工作室后，自动保存 Cookie、工作室 ID 到权限 `600` 的 `.env.local`，不打印 Cookie。没有 Chrome 时先运行 `npm exec playwright install chromium`。会话失效后重新登录；Maker PAT 不能替代开发者后台会话。
 
-仓库模式编辑 `config/games.json`：
+## 多个独立榜单
+
+首页 `/` 是群友榜，`/hot` 是热门榜。顶部可切换；每个榜单有自己的游戏、作者、QQ 头像和绑定关系。排序、搜索、名次比较、合计、统计详情和导出只使用当前榜的数据。同一款游戏可加入多个榜单，编辑或删除其中一榜的内容不会改动另一榜。
+
+仓库模式编辑 `config/boards.json`：
 
 ```json
-[
-  { "appId": "959305", "name": "增量牧场", "totalStartDate": "2020-01-01" }
-]
+{
+  "boards": [
+    {
+      "id": "home",
+      "slug": "",
+      "name": "群友榜",
+      "games": [
+        { "appId": "959305", "name": "增量牧场", "totalStartDate": "2020-01-01" }
+      ],
+      "authors": [
+        { "id": "maker", "name": "作者昵称", "qq": "", "avatarUrl": "", "tapUrl": "", "gameIds": ["959305"] }
+      ]
+    },
+    { "id": "hot", "slug": "hot", "name": "热门榜", "games": [], "authors": [] }
+  ]
+}
 ```
 
-查询默认使用登录工作室 ID，与 TapSulor 相同；必要时用 `queryDeveloperId` 覆盖。Logo、公开截图和制作人会自动获取；作者可在 `config/authors.json` 手动绑定：
+`id` 保持稳定，`slug` 决定子路径；必须有且只有一个空 `slug` 对应首页。其余路径用小写字母、数字和短横线，不能与 `api`、`data`、`media`、`shared` 等保留路径冲突。最多 20 个榜单，每榜最多 200 款游戏和 300 位作者。游戏 ID 和作者 ID 只需在各自榜内唯一，作者只能绑定同榜游戏。
 
-```json
-[
-  {
-    "id": "author-example",
-    "name": "作者昵称",
-    "qq": "",
-    "avatarUrl": "",
-    "tapUrl": "",
-    "gameIds": ["959305"]
-  }
-]
-```
+查询默认使用登录工作室 ID，与 TapSulor 相同；必要时在游戏上用 `queryDeveloperId` 覆盖。相同游戏、工作室和日期区间的报表请求在一次采集中复用；各榜的累计起始日期和失败历史独立保存。Logo、公开截图和制作人自动获取，手动作者绑定优先。
 
-头像填写 HTTPS URL 时优先使用该链接；留空且填写 QQ 号时自动使用 QQ 头像接口，两个字段都为空时展示昵称首字。修改 QQ 号会更新默认头像。TapTap / QQ 图片保存到 `site/media/`，随网页同源发布，供本地导图使用。手动作者绑定优先于公开页自动识别。`[]` 可发布空榜。
+头像填写 HTTPS URL 时优先使用该链接；留空且填写 QQ 号时使用 QQ 头像接口，两个字段都为空时展示昵称首字。修改 QQ 号会更新默认头像。TapTap / QQ 图片保存到 `site/media/`，随网页同源发布，供本地导图使用。空 `games` 可发布空榜。
+
+在线管理模式可在「榜单」中新建、改名、修改子路径或删除非首页榜单；「游戏」「作者」页面先选择要管理的榜单，再操作对应内容。已有单榜 D1 配置、旧快照，以及旧的 `config/games.json` + `config/authors.json` 都可读取并迁移到群友榜，热门榜保持空白。新配置只写入 `config/boards.json`，若新旧文件同时存在，以新文件为准。
+
+热门游戏公开接口的自动导入暂未接入，后续可仅更新热门榜的游戏配置。
 
 ## Pages 与每日更新
 
@@ -87,9 +97,9 @@ npm run deploy
 3. 在 `.env.local` 设置实际 Pages 域名 `TAPMONEY_API_URL`；重新部署后运行 `npm run admin:seed` 首次导入配置和快照，已有配置不会被重置。
 4. 重新执行 `npm run setup:github -- 用户名/仓库名`，将云模式、API 地址和管理 Token 配置到 Actions。
 
-在线管理模式用 Pages Functions + D1，只有 `/api/*` 请求进入 Functions，其余文件静态托管。点击右下角淡色 `+` 输入管理 Token，可编辑游戏、作者、QQ 头像、TapTap 主页和绑定；Token 只保存在当前标签页的会话存储，Cloudflare 保存 SHA-256 哈希。写入有认证与配置版本冲突保护。
+在线管理模式用 Pages Functions + D1，只有 `/api/*` 请求进入 Functions，其余文件静态托管。点击右下角淡色 `+` 输入管理 Token，可按榜单编辑游戏、作者、QQ 头像、TapTap 主页和绑定；Token 只保存在当前标签页的会话存储，Cloudflare 保存 SHA-256 哈希。写入有认证与配置版本冲突保护。
 
-**云模式以 D1 为配置来源**；采集时将云配置备份到 `config/`。此时不要直接修改仓库配置，它会被云配置覆盖。新增游戏可手动采集或等待每日任务获得收益。静态 JSON 是公开镜像，实时 API 可立即反映作者 / 游戏配置变化。
+**云模式以 D1 为配置来源**；采集时将云配置备份到 `config/`。此时不要直接修改仓库配置，它会被云配置覆盖。新增游戏可手动采集或等待每日任务获得收益。手动采集与每日任务统一更新全部榜单。静态 JSON 是公开镜像，实时 API 可立即反映作者 / 游戏配置变化。
 
 管理页工具栏的采集图标可触发同一套 **Update ranking** 工作流，并显示排队、运行、成功或失败状态。关闭管理页不影响任务，完成后自动刷新榜单；已有任务运行时复用该任务，多标签页提交也不会重复派发。
 
@@ -105,11 +115,13 @@ npm run collect:setup -- 你的用户名/仓库名 --token-file .local/github-ac
 
 ## JSON / jsDelivr
 
-主站默认读取 Pages 同源 `data/ranking.json`，云模式读取同源 `/api/ranking`。公开快照也保存在 Git 仓库，第三方可读取固定 commit 的镜像：
+主站默认读取 Pages 同源 `/data/ranking.json`，云模式读取同源 `/api/ranking`。公开快照也保存在 Git 仓库，第三方可读取固定 commit 的镜像：
 
 ```text
 https://cdn.jsdelivr.net/gh/dogxii/tapmoney@<commit>/site/data/ranking.json
 ```
+
+快照采用 `schemaVersion: 2`，公共日期字段在顶层，`boards[]` 包含各榜的 `id`、`slug`、`name`、`games` 和 `authors`。域名根目录托管，使用 Pages 默认的 SPA 回退（不添加顶层 `404.html`），直接访问或刷新 `/hot/` 也能加载。其他托管平台需要配置未匹配的页面路径回退到 `index.html`。
 
 `@main` 有 CDN 缓存延迟，不保证每日立即更新；主站不依赖它。仓库模式可在构建环境设置 `TAPMONEY_DATA_URL` 使用公开 HTTPS 镜像，图片仍需同步发布到网站。
 
@@ -129,7 +141,7 @@ npm run build
 npm run preview -- --built
 ```
 
-`npm test` 验证收益解析、失败保留、历史曲线、认证与配置冲突、公开字段、两种模式的配置和静态构建边界。
+`npm test` 验证收益解析、失败保留、历史曲线、认证与配置冲突、公开字段、多榜隔离、旧数据迁移、报表复用、两种模式的配置和静态构建边界。
 
 [迁移记录](docs/open-source-deployment-plan.md) · [指标与导出方案](docs/stats-and-export-plan.md) · [TapSulor 源码参考](https://github.com/liusu239113/TapSulor-Android/blob/165d2583b31ccbe5887d8d2d9c4b253a0282edbd/web-src/js/main.js#L408)
 

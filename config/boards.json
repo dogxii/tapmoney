@@ -1,0 +1,51 @@
+{
+  "boards": [
+    {
+      "id": "home",
+      "name": "群友榜",
+      "slug": "",
+      "games": [
+        {
+          "appId": "959305",
+          "name": "增量牧场",
+          "totalStartDate": "2020-01-01"
+        },
+        {
+          "appId": "955186",
+          "name": "增量矿石弹球",
+          "totalStartDate": "2026-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FsnNdznzP1wjuRC7pI0kv4adut2t.png/_tap_appicon.jpg"
+        }
+      ],
+      "authors": [
+        {
+          "id": "tap-649821456",
+          "name": "好想成为人类啊",
+          "avatarUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png",
+          "tapUrl": "https://www.taptap.cn/user/649821456",
+          "gameIds": [
+            "959305"
+          ],
+          "qq": ""
+        },
+        {
+          "id": "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01",
+          "name": "豆腐脑",
+          "avatarUrl": null,
+          "tapUrl": "https://www.taptap.cn/user/58689469",
+          "gameIds": [
+            "955186"
+          ],
+          "qq": "394811161"
+        }
+      ]
+    },
+    {
+      "id": "hot",
+      "name": "热门榜",
+      "slug": "hot",
+      "games": [],
+      "authors": []
+    }
+  ]
+}

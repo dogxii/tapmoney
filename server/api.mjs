@@ -1,6 +1,7 @@
 import { normalizeGames, validDate, imageUrl } from '../shared/config.mjs';
 import { normalizeAuthors, normalizeConfig, extractGameMetadata } from '../shared/catalog.mjs';
 import { mediaUrl, cleanMedia } from '../shared/media.mjs';
+import { boardsOf, boardInfo, validateBoards } from '../shared/boards.mjs';
 import { collectionStatus, dispatchCollection } from './collection.mjs';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -23,6 +24,15 @@ export async function authenticated(request, expected) {
 
 
 export function publicRanking(snapshot, config) {
+  const old = new Map(boardsOf(snapshot).map(board => [board.id, board]));
+  return {
+    schemaVersion: 2, generatedAt: snapshot.generatedAt ?? null, asOf: snapshot.asOf ?? null,
+    monthStart: snapshot.monthStart ?? null, timezone: 'Asia/Shanghai', currency: 'CNY', source: 'TapTap 小游戏广告收益报表',
+    boards: normalizeConfig(config).boards.map(board => ({ ...boardInfo(board), ...publicBoard(old.get(board.id) ?? {}, board) }))
+  };
+}
+
+function publicBoard(snapshot, config) {
   const old = new Map((snapshot.games ?? []).map(game => [game.appId, game]));
   const profiles = new Map((snapshot.authors ?? []).map(author => [author.id, author]));
   const authors = normalizeAuthors(config.authors);
@@ -39,7 +49,8 @@ export function publicRanking(snapshot, config) {
       appId: game.appId, name: game.name, url: `https://www.taptap.cn/app/${game.appId}`, totalStartDate: game.totalStartDate,
       iconUrl, iconSourceUrl: game.iconUrl ?? saved?.iconSourceUrl ?? null,
       media: cleanMedia([...(iconUrl ? [{ kind: 'logo', url: iconUrl }] : []), ...(saved?.media ?? []).filter(item => item.kind === 'screenshot')]),
-      authorIds: bound.length ? bound.map(author => author.id) : saved?.authorIds ?? [],
+      authorIds: bound.length ? bound.map(author => author.id) : saved?.authorMode === 'manual' ? [] : saved?.authorIds ?? [],
+      authorMode: bound.length ? 'manual' : 'auto',
       status: saved?.status ?? 'pending', asOf: saved?.asOf ?? null, monthStart: saved?.monthStart ?? null,
       updatedAt: saved?.updatedAt ?? null,
       revenue: { yesterday: saved?.revenue?.yesterday ?? null, month: saved?.revenue?.month ?? null, total: matchingRange ? saved?.revenue?.total ?? null : null },
@@ -48,22 +59,29 @@ export function publicRanking(snapshot, config) {
   });
   const used = new Set(games.flatMap(game => game.authorIds));
   return {
-    schemaVersion: 1, generatedAt: snapshot.generatedAt ?? null, asOf: snapshot.asOf ?? null,
-    monthStart: snapshot.monthStart ?? null, timezone: 'Asia/Shanghai', currency: 'CNY', source: 'TapTap 小游戏广告收益报表', games,
+    games,
     authors: [...profiles.values()].filter(author => used.has(author.id)).map(({ id, name, avatarUrl, avatarSourceUrl, tapUrl }) => ({ id, name, avatarUrl, avatarSourceUrl, tapUrl }))
   };
 }
 
 function cleanSnapshot(input) {
-  if (input.schemaVersion !== 1 || !Array.isArray(input.games) || input.games.length > 200 || !Number.isFinite(Date.parse(input.generatedAt)) || !validDate(input.asOf) || !validDate(input.monthStart)) throw new Error('快照格式无效。');
+  if (!(input.schemaVersion === 1 && Array.isArray(input.games) || input.schemaVersion === 2 && Array.isArray(input.boards)) || !Number.isFinite(Date.parse(input.generatedAt)) || !validDate(input.asOf) || !validDate(input.monthStart)) throw new Error('快照格式无效。');
+  const boards = validateBoards(boardsOf(input)).map(board => ({ ...boardInfo(board), ...cleanBoard(board, input.asOf) }));
+  return { schemaVersion: 2, generatedAt: input.generatedAt, asOf: input.asOf, monthStart: input.monthStart, boards };
+}
+
+function cleanBoard(input, asOf) {
+  // 先整体验证，保证同一榜内的游戏 ID 不重复。
+  const bases = normalizeGames(input.games.map(game => ({ ...game, iconUrl: undefined })));
   const amount = value => value === null ? null : typeof value === 'number' && Number.isFinite(value) ? value : null;
-  const games = input.games.map(game => {
-    const base = normalizeGames([{ ...game, iconUrl: undefined }])[0];
-    const history = Array.isArray(game.history) ? game.history.filter(row => validDate(row.date) && row.date >= base.totalStartDate && row.date <= input.asOf && typeof row.revenue === 'number' && Number.isFinite(row.revenue)).map(({ date, revenue }) => ({ date, revenue })) : [];
+  const games = input.games.map((game, index) => {
+    const base = bases[index];
+    const history = Array.isArray(game.history) ? game.history.filter(row => validDate(row.date) && row.date >= base.totalStartDate && row.date <= asOf && typeof row.revenue === 'number' && Number.isFinite(row.revenue)).map(({ date, revenue }) => ({ date, revenue })) : [];
     if (history.length > 20000) throw new Error('日报数量过多。');
     return {
       appId: base.appId, name: base.name, url: `https://www.taptap.cn/app/${base.appId}`, totalStartDate: base.totalStartDate,
       iconUrl: mediaUrl(game.iconUrl), iconSourceUrl: imageUrl(game.iconSourceUrl), media: cleanMedia(game.media), authorIds: (game.authorIds ?? []).filter(id => /^[\w-]{1,64}$/.test(id)),
+      authorMode: game.authorMode === 'manual' ? 'manual' : 'auto',
       status: ['ok', 'stale', 'unavailable'].includes(game.status) ? game.status : 'unavailable',
       asOf: validDate(game.asOf) ? game.asOf : null, monthStart: validDate(game.monthStart) ? game.monthStart : null,
       updatedAt: Number.isFinite(Date.parse(game.updatedAt)) ? game.updatedAt : null,
@@ -71,8 +89,9 @@ function cleanSnapshot(input) {
     };
   });
   const originals = input.authors ?? [];
+  if (!Array.isArray(originals) || originals.length > 300) throw new Error('作者列表过大。');
   const authors = normalizeAuthors(originals.map(author => ({ ...author, avatarUrl: null, qq: '', gameIds: [] }))).map(({ id, name, tapUrl }, index) => ({ id, name, avatarUrl: mediaUrl(originals[index].avatarUrl), avatarSourceUrl: imageUrl(originals[index].avatarSourceUrl), tapUrl }));
-  return { schemaVersion: 1, generatedAt: input.generatedAt, asOf: input.asOf, monthStart: input.monthStart, games, authors };
+  return { games, authors };
 }
 
 async function readBody(request, limit = 256 * 1024) {
@@ -108,7 +127,7 @@ async function handle(request, env) {
   }
   if (route === '/api/admin/config' && request.method === 'GET') {
     const saved = await document(env.DB, 'config');
-    return json(saved ? { ...normalizeConfig(saved), revision: saved.revision } : { games: [], authors: [], revision: 0 });
+    return json({ ...normalizeConfig(saved ?? { games: [], authors: [] }), revision: saved?.revision ?? 0 });
   }
   if (route === '/api/admin/collect' && ['GET', 'POST'].includes(request.method)) {
     try {
@@ -155,7 +174,9 @@ async function handle(request, env) {
       if (!response.ok) return json({ error: '暂无收益数据。' }, 503);
       snapshot = await response.json();
     }
-    return json(config ? publicRanking(snapshot, config) : snapshot);
+    if (config) return json(publicRanking(snapshot, config));
+    const { games, authors, ...common } = snapshot;
+    return json({ ...common, schemaVersion: 2, boards: boardsOf(snapshot) });
   }
   return json({ error: '接口不存在。' }, 404);
 }

@@ -7,7 +7,7 @@ import { build as bundle } from 'esbuild';
 export async function build({ env, directory = path.join(ROOT, 'dist') } = {}) {
   env ??= await loadEnv();
   const adminEnabled = configSource(env) === 'cloud';
-  const rankingUrl = env.TAPMONEY_DATA_URL || (adminEnabled ? './api/ranking' : './data/ranking.json');
+  const rankingUrl = env.TAPMONEY_DATA_URL || (adminEnabled ? '/api/ranking' : '/data/ranking.json');
   if (env.TAPMONEY_DATA_URL) {
     const url = new URL(rankingUrl);
     if (url.protocol !== 'https:' || url.username || url.password) throw new Error('TAPMONEY_DATA_URL 必须是公开 HTTPS 地址。');
@@ -15,6 +15,7 @@ export async function build({ env, directory = path.join(ROOT, 'dist') } = {}) {
   }
   await rm(directory, { recursive: true, force: true });
   await cp(path.join(ROOT, 'site'), directory, { recursive: true });
+  await cp(path.join(ROOT, 'shared/boards.mjs'), path.join(directory, 'shared/boards.mjs'), { recursive: true });
   await atomicWrite(path.join(directory, 'runtime.js'), `export const rankingUrl = ${JSON.stringify(rankingUrl)};\nexport const adminEnabled = ${adminEnabled};\n`);
   if (adminEnabled) {
     await bundle({ entryPoints: [path.join(ROOT, 'server/api.mjs')], bundle: true, format: 'esm', platform: 'browser', outfile: path.join(directory, '_worker.js'), minify: true });

@@ -112,7 +112,7 @@ async function gameCard({ game, snapshot, profiles, mode, days }) {
 async function rankingCard({ rows, snapshot, metric, profiles, filter, page = 1, pages = 1 }) {
   await document.fonts.ready;
   const { element, ctx } = canvas(300 + Math.max(1, rows.length) * 112);
-  text(ctx, `${metricLabels[metric]}收益榜`, 64, 96, 42, ink, 600);
+  text(ctx, `${snapshot.name ?? '收益榜'} · ${metricLabels[metric]}`, 64, 96, 42, ink, 600, 760);
   ctx.textAlign = 'right'; text(ctx, 'TapMoney', 1016, 92, 24, muted, 600); ctx.textAlign = 'left';
   text(ctx, periodLabel(snapshot, metric), 64, 145, 23, muted);
   if (filter) text(ctx, `筛选：${filter}`, 64, 178, 19, muted, 400, 900);
@@ -179,7 +179,7 @@ function shareButton(view, getFile) {
 
 export async function showRankingExport(options) {
   const view = exportDialog('导出榜单');
-  const name = fileName(`TapMoney-${metricLabels[options.metric]}收益榜-${options.snapshot.asOf ?? '待采集'}`);
+  const name = fileName(`TapMoney-${options.snapshot.name ?? '收益榜'}-${metricLabels[options.metric]}-${options.snapshot.asOf ?? '待采集'}`);
   let png;
   const save = view.button('保存 PNG', () => { if (png) download(png, `${name}.png`); }, true); save.disabled = true;
   if (options.rows.length > 20) view.button('全部分页 ZIP', async () => {

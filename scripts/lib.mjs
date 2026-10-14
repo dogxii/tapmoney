@@ -65,12 +65,6 @@ export function periods(now = new Date()) {
   return { today, asOf: yesterday.toISOString().slice(0, 10), monthStart: `${today.slice(0, 7)}-01` };
 }
 
-export async function loadGames() {
-  const list = await readJson(path.join(ROOT, 'config/games.json'));
-  if (!Array.isArray(list)) throw new Error('请在 config/games.json 中配置游戏列表。');
-  return normalizeGames(list);
-}
-
 export class AuthenticationError extends Error {
   constructor() { super('开发者后台登录会话已失效或未被接受，请运行 npm run login 重新登录。'); }
 }

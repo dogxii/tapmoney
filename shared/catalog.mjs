@@ -1,7 +1,14 @@
 import { imageUrl, validId, normalizeGames } from './config.mjs';
+import { boardsOf, boardInfo, validateBoards } from './boards.mjs';
 export { imageUrl } from './config.mjs';
 
 export function normalizeConfig(input) {
+  if (!input || typeof input !== 'object' || input.boards === undefined && (!Array.isArray(input.games) || !Array.isArray(input.authors))) throw new Error('缺少榜单配置。');
+  const boards = validateBoards(input.boards === undefined ? boardsOf(input) : input.boards);
+  return { boards: boards.map(board => ({ ...boardInfo(board), ...normalizeCatalog(board) })) };
+}
+
+function normalizeCatalog(input) {
   const games = normalizeGames(input.games);
   if (!Array.isArray(input.authors) || input.authors.length > 300) throw new Error('作者列表最多支持 300 位。');
   const authors = normalizeAuthors(input.authors).map((author, index) => {
@@ -28,7 +35,7 @@ export function qqAvatarUrl(qq) {
 }
 
 export function normalizeAuthors(list) {
-  if (!Array.isArray(list)) throw new Error('config/authors.json 需要是作者数组。');
+  if (!Array.isArray(list)) throw new Error('authors 需要是作者数组。');
   const ids = new Set();
   return list.map(item => {
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(item.id ?? '') || ids.has(item.id)) throw new Error('作者 id 需要唯一，只能包含字母、数字、下划线或短横线。');

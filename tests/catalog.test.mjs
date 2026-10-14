@@ -49,11 +49,11 @@ test('作者可使用 QQ 头像绑定多款游戏，限制头像与主页链接'
 test('配置保存头像留空的意图，编辑 QQ 后不会继续使用旧 QQ 头像', () => {
   const author = { id: 'maker', name: '作者', qq: '12345678', avatarUrl: '', gameIds: [] };
   const saved = normalizeConfig({ games: [], authors: [author] });
-  assert.equal(saved.authors[0].avatarUrl, null);
-  const changed = normalizeAuthors([{ ...saved.authors[0], qq: '87654321' }])[0];
+  assert.equal(saved.boards[0].authors[0].avatarUrl, null);
+  const changed = normalizeAuthors([{ ...saved.boards[0].authors[0], qq: '87654321' }])[0];
   assert.equal(changed.avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=87654321&s=100');
   const legacy = normalizeConfig({ games: [], authors: [{ ...author, avatarUrl: 'https://q1.qlogo.cn/g?b=qq&nk=12345678&s=100' }] });
-  assert.equal(legacy.authors[0].avatarUrl, null);
+  assert.equal(legacy.boards[0].authors[0].avatarUrl, null);
   assert.equal(normalizeAuthors([{ ...author, qq: '' }])[0].avatarUrl, null);
 });
 

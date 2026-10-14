@@ -52,12 +52,12 @@ test('QQ 头像默认值不会进入编辑字段，公开排行立即反映新�
   const { env } = await fixture(t);
   await worker.fetch(request('/api/admin/config', { method: 'PUT', body: { ...config, revision: 0 } }), env);
   const current = await (await worker.fetch(request('/api/admin/config'), env)).json();
-  assert.equal(current.authors[0].avatarUrl, null);
+  assert.equal(current.boards[0].authors[0].avatarUrl, null);
   const first = publicRanking({ games: [] }, current);
-  assert.equal(first.authors[0].avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=12345678&s=100');
-  current.authors[0].qq = '87654321';
+  assert.equal(first.boards[0].authors[0].avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=12345678&s=100');
+  current.boards[0].authors[0].qq = '87654321';
   const saved = await (await worker.fetch(request('/api/admin/config', { method: 'PUT', body: current }), env)).json();
-  assert.equal(publicRanking(first, saved).authors[0].avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=87654321&s=100');
+  assert.equal(publicRanking(first, saved).boards[0].authors[0].avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=87654321&s=100');
 });
 
 test('手动采集只派发固定仓库的采集工作流，并发和排队中不重复提交', async t => {
@@ -127,8 +127,8 @@ test('游戏和作者保存到数据库，冲突版本与无效绑定均不覆�
   assert.equal(invalid.status, 400);
   const current = await (await worker.fetch(request('/api/admin/config'), env)).json();
   assert.equal(current.revision, 1);
-  assert.equal(current.authors[0].qq, '12345678');
-  const second = await worker.fetch(request('/api/admin/config', { method: 'PUT', body: { ...current, games: [{ ...game, name: '更新名称' }] } }), env);
+  assert.equal(current.boards[0].authors[0].qq, '12345678');
+  const second = await worker.fetch(request('/api/admin/config', { method: 'PUT', body: { ...current, boards: current.boards.map((board, index) => index ? board : { ...board, games: [{ ...game, name: '更新名称' }] }) } }), env);
   assert.equal(second.status, 200);
   assert.equal((await second.json()).revision, 2);
 });
@@ -137,14 +137,14 @@ test('公开排行榜即时应用增删、作者绑定，新增游戏与累计�
   const snapshot = { games: [{ ...game, asOf: '2026-10-13', status: 'ok', revenue: { yesterday: 3, month: 8, total: 20 }, history: [{ date: '2026-10-13', revenue: 3 }] }, { ...game, appId: 'deleted' }], authors: [] };
   const changed = normalizeConfig({ games: [{ ...game, totalStartDate: '2026-10-01' }, { ...game, appId: '2' }], authors: config.authors });
   const publicData = publicRanking(snapshot, changed);
-  assert.equal(publicData.games.length, 2);
-  assert.equal(publicData.games[0].revenue.total, null);
-  assert.deepEqual(publicData.games[0].history, []);
-  assert.deepEqual(publicData.games[0].authorIds, ['maker']);
-  assert.equal(publicData.games[1].status, 'pending');
-  assert.equal(publicData.games[1].revenue.yesterday, null);
-  assert.ok(!('qq' in publicData.authors[0]));
-  assert.ok(!('gameIds' in publicData.authors[0]));
+  assert.equal(publicData.boards[0].games.length, 2);
+  assert.equal(publicData.boards[0].games[0].revenue.total, null);
+  assert.deepEqual(publicData.boards[0].games[0].history, []);
+  assert.deepEqual(publicData.boards[0].games[0].authorIds, ['maker']);
+  assert.equal(publicData.boards[0].games[1].status, 'pending');
+  assert.equal(publicData.boards[0].games[1].revenue.yesterday, null);
+  assert.ok(!('qq' in publicData.boards[0].authors[0]));
+  assert.ok(!('gameIds' in publicData.boards[0].authors[0]));
 });
 
 test('云端快照仅保存公开收益字段，访客无需 Token 即可读取', async t => {
@@ -165,8 +165,43 @@ test('云端快照仅保存公开收益字段，访客无需 Token 即可读取'
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   const data = await response.json();
-  assert.deepEqual(data.games[0].history, [{ date: '2026-10-13', revenue: 3 }]);
-  assert.equal(data.games[0].iconUrl, local);
-  assert.deepEqual(data.games[0].media,[{kind:'logo',url:local}]);
-  assert.equal(data.authors[0].avatarUrl,local);
+  assert.deepEqual(data.boards[0].games[0].history, [{ date: '2026-10-13', revenue: 3 }]);
+  assert.equal(data.boards[0].games[0].iconUrl, local);
+  assert.deepEqual(data.boards[0].games[0].media,[{kind:'logo',url:local}]);
+  assert.equal(data.boards[0].authors[0].avatarUrl,local);
+});
+
+test('旧 D1 文档无需重置即可读取为多榜配置，旧快照只属于首页', async t => {
+  const {env,sqlite} = await fixture(t);
+  sqlite.prepare('INSERT INTO documents (key,body,revision,updated_at) VALUES (?,?,?,?)').run('config',JSON.stringify(config),7,'2026-10-14');
+  const migrated = await (await worker.fetch(request('/api/admin/config'),env)).json();
+  assert.equal(migrated.revision,7);
+  assert.deepEqual(migrated.boards.map(b=>[b.slug,b.games.length,b.authors.length]),[['',1,1],['hot',0,0]]);
+  const publicData = await (await worker.fetch(request('/api/ranking',{authorized:false}),env)).json();
+  assert.equal(publicData.schemaVersion,2);
+  assert.equal(publicData.boards[0].games.length,1);
+  assert.deepEqual(publicData.boards[1].games,[]);
+});
+
+test('多榜快照上传清理各榜私有字段，删除热门榜游戏不影响群友榜，过期版本不能覆盖', async t => {
+  const { env, sqlite } = await fixture(t);
+  const home = {id:'home',name:'群友榜',slug:'',...config};
+  const hot = {...home,id:'hot',slug:'hot',name:'热门榜',authors:[{...config.authors[0],name:'热门作者',qq:'87654321'}]};
+  let saved = await (await worker.fetch(request('/api/admin/config',{method:'PUT',body:{boards:[home,hot],revision:0}}),env)).json();
+  const snapshot = {schemaVersion:2,generatedAt:'2026-10-14T03:00:00Z',asOf:'2026-10-13',monthStart:'2026-10-01',boards:[home,hot].map(b=>({...b,private:'must-not-leak',games:[{...game,queryDeveloperId:'275960',status:'ok',asOf:'2026-10-13',monthStart:'2026-10-01',updatedAt:'2026-10-14T03:00:00Z',revenue:{yesterday:3,month:8,total:20},history:[]}]}))};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:snapshot}),env)).status,200);
+  const body = sqlite.prepare("SELECT body FROM documents WHERE key = 'snapshot'").get().body;
+  for (const key of ['must-not-leak','queryDeveloperId','qq','gameIds']) assert.ok(!body.includes(key));
+  const before = await (await worker.fetch(request('/api/ranking',{authorized:false}),env)).json();
+  assert.equal(before.boards[0].authors[0].name,'作者');
+  assert.equal(before.boards[1].authors[0].name,'热门作者');
+  const stale = structuredClone(saved);
+  saved.boards[1].games=[]; saved.boards[1].authors=[];
+  assert.equal((await worker.fetch(request('/api/admin/config',{method:'PUT',body:saved}),env)).status,200);
+  assert.equal((await worker.fetch(request('/api/admin/config',{method:'PUT',body:stale}),env)).status,409);
+  const after = await (await worker.fetch(request('/api/ranking',{authorized:false}),env)).json();
+  assert.deepEqual(after.boards[0],before.boards[0]);
+  assert.deepEqual(after.boards[1].games,[]); assert.deepEqual(after.boards[1].authors,[]);
+  const invalid = {...snapshot,boards:[snapshot.boards[0],{...snapshot.boards[1],slug:''}]};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:invalid}),env)).status,400);
 });

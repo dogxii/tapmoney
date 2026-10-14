@@ -1,291 +1,203 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedAt": "2026-10-14T09:38:06.015Z",
   "asOf": "2026-10-13",
   "monthStart": "2026-10-01",
   "timezone": "Asia/Shanghai",
   "currency": "CNY",
   "source": "TapTap 小游戏广告收益报表",
-  "games": [
+  "boards": [
     {
-      "appId": "959305",
-      "name": "增量牧场",
-      "url": "https://www.taptap.cn/app/959305",
-      "totalStartDate": "2020-01-01",
-      "iconUrl": "/media/e5dd084fae65c41cd2d259bd612f18ede477b694f576e4fa0f1cd22bf3d5ed4c.png",
-      "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FuUsuclpmW7Xm-QqLh0wcG6sr4hK.png/_tap_appicon.jpg",
-      "media": [
+      "id": "home",
+      "name": "群友榜",
+      "slug": "",
+      "games": [
         {
-          "kind": "logo",
-          "url": "/media/e5dd084fae65c41cd2d259bd612f18ede477b694f576e4fa0f1cd22bf3d5ed4c.png"
+          "appId": "959305",
+          "name": "增量牧场",
+          "url": "https://www.taptap.cn/app/959305",
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "/media/e5dd084fae65c41cd2d259bd612f18ede477b694f576e4fa0f1cd22bf3d5ed4c.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FuUsuclpmW7Xm-QqLh0wcG6sr4hK.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/e5dd084fae65c41cd2d259bd612f18ede477b694f576e4fa0f1cd22bf3d5ed4c.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/89c348c9fc6f7fd9baa716958cd890cc05a1f7241abbe2808c9d811ec122fff7.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/811566dfdddc5af41ad6e0eb65cc9933a46d45bcc204dea1b894ab3aef27e91e.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/df6506346287dc5c3f670d2ceff37237d0dbb67df1d6956507405651eaa20f48.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/4454ff1cca045800513baef8bf95cf0dae9d528257c9c797022e48594441d383.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/6cda2ae0d6b380b1aee52b4a92070022fb6d79ebc34dca93f7ba187b90bc1220.jpg"
+            }
+          ],
+          "authorIds": [
+            "tap-649821456"
+          ],
+          "authorMode": "manual",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T09:38:06.015Z",
+          "revenue": {
+            "yesterday": 396.05,
+            "month": 6663.87,
+            "total": 6663.87
+          },
+          "history": [
+            {
+              "date": "2026-10-04",
+              "revenue": 25.61
+            },
+            {
+              "date": "2026-10-05",
+              "revenue": 239.66
+            },
+            {
+              "date": "2026-10-06",
+              "revenue": 720.89
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 1196.71
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 1009.73
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 1027.72
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 878.56
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 638.9
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 530.04
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 396.05
+            }
+          ]
         },
         {
-          "kind": "screenshot",
-          "url": "/media/89c348c9fc6f7fd9baa716958cd890cc05a1f7241abbe2808c9d811ec122fff7.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/811566dfdddc5af41ad6e0eb65cc9933a46d45bcc204dea1b894ab3aef27e91e.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/df6506346287dc5c3f670d2ceff37237d0dbb67df1d6956507405651eaa20f48.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/4454ff1cca045800513baef8bf95cf0dae9d528257c9c797022e48594441d383.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/6cda2ae0d6b380b1aee52b4a92070022fb6d79ebc34dca93f7ba187b90bc1220.jpg"
+          "appId": "955186",
+          "name": "增量矿石弹球",
+          "url": "https://www.taptap.cn/app/955186",
+          "totalStartDate": "2026-01-01",
+          "iconUrl": "/media/aeebaacd34684a274315ccdd88d214b720186a940c6ef519386c114f4c010668.png",
+          "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FsnNdznzP1wjuRC7pI0kv4adut2t.png/_tap_appicon.jpg",
+          "media": [
+            {
+              "kind": "logo",
+              "url": "/media/aeebaacd34684a274315ccdd88d214b720186a940c6ef519386c114f4c010668.png"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/b2384e6b19584e126c0480b6d2d2f3bd7ef87a291144c44822a78f6eb8279be9.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/96bb871151c6bf38bad9eb7638c4a4414367fdac97390530a267058681c62794.jpg"
+            },
+            {
+              "kind": "screenshot",
+              "url": "/media/3e051b3ec2b5789a5548ac6251710acd62d14752e1c2326c4ac1b77aaf62cede.jpg"
+            }
+          ],
+          "authorIds": [
+            "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01"
+          ],
+          "authorMode": "manual",
+          "status": "ok",
+          "asOf": "2026-10-13",
+          "monthStart": "2026-10-01",
+          "updatedAt": "2026-10-14T09:38:06.015Z",
+          "revenue": {
+            "yesterday": 2.6,
+            "month": 74.56,
+            "total": 74.56
+          },
+          "history": [
+            {
+              "date": "2026-10-06",
+              "revenue": 0.35
+            },
+            {
+              "date": "2026-10-07",
+              "revenue": 3.29
+            },
+            {
+              "date": "2026-10-08",
+              "revenue": 20.83
+            },
+            {
+              "date": "2026-10-09",
+              "revenue": 20.59
+            },
+            {
+              "date": "2026-10-10",
+              "revenue": 15.95
+            },
+            {
+              "date": "2026-10-11",
+              "revenue": 6.76
+            },
+            {
+              "date": "2026-10-12",
+              "revenue": 4.19
+            },
+            {
+              "date": "2026-10-13",
+              "revenue": 2.6
+            }
+          ]
         }
       ],
-      "authorIds": [
-        "tap-649821456"
-      ],
-      "status": "ok",
-      "asOf": "2026-10-13",
-      "monthStart": "2026-10-01",
-      "updatedAt": "2026-10-14T09:38:06.015Z",
-      "revenue": {
-        "yesterday": 396.05,
-        "month": 6663.87,
-        "total": 6663.87
-      },
-      "history": [
+      "authors": [
         {
-          "date": "2026-10-04",
-          "revenue": 25.61
+          "id": "tap-649821456",
+          "name": "好想成为人类啊",
+          "avatarUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png",
+          "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png",
+          "tapUrl": "https://www.taptap.cn/user/649821456"
         },
         {
-          "date": "2026-10-05",
-          "revenue": 239.66
-        },
-        {
-          "date": "2026-10-06",
-          "revenue": 720.89
-        },
-        {
-          "date": "2026-10-07",
-          "revenue": 1196.71
-        },
-        {
-          "date": "2026-10-08",
-          "revenue": 1009.73
-        },
-        {
-          "date": "2026-10-09",
-          "revenue": 1027.72
-        },
-        {
-          "date": "2026-10-10",
-          "revenue": 878.56
-        },
-        {
-          "date": "2026-10-11",
-          "revenue": 638.9
-        },
-        {
-          "date": "2026-10-12",
-          "revenue": 530.04
-        },
-        {
-          "date": "2026-10-13",
-          "revenue": 396.05
+          "id": "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01",
+          "name": "豆腐脑",
+          "avatarUrl": "/media/a7a36a6ae3130622e6fa215fceb620e6dc2daeff852e353cde3855a582801665.jpg",
+          "avatarSourceUrl": "https://q1.qlogo.cn/g?b=qq&nk=394811161&s=100",
+          "tapUrl": "https://www.taptap.cn/user/58689469"
         }
       ]
     },
     {
-      "appId": "955186",
-      "name": "增量矿石弹球",
-      "url": "https://www.taptap.cn/app/955186",
-      "totalStartDate": "2026-01-01",
-      "iconUrl": "/media/aeebaacd34684a274315ccdd88d214b720186a940c6ef519386c114f4c010668.png",
-      "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FsnNdznzP1wjuRC7pI0kv4adut2t.png/_tap_appicon.jpg",
-      "media": [
-        {
-          "kind": "logo",
-          "url": "/media/aeebaacd34684a274315ccdd88d214b720186a940c6ef519386c114f4c010668.png"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/b2384e6b19584e126c0480b6d2d2f3bd7ef87a291144c44822a78f6eb8279be9.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/96bb871151c6bf38bad9eb7638c4a4414367fdac97390530a267058681c62794.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/3e051b3ec2b5789a5548ac6251710acd62d14752e1c2326c4ac1b77aaf62cede.jpg"
-        }
-      ],
-      "authorIds": [
-        "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01"
-      ],
-      "status": "ok",
-      "asOf": "2026-10-13",
-      "monthStart": "2026-10-01",
-      "updatedAt": "2026-10-14T09:38:06.015Z",
-      "revenue": {
-        "yesterday": 2.6,
-        "month": 74.56,
-        "total": 74.56
-      },
-      "history": [
-        {
-          "date": "2026-10-06",
-          "revenue": 0.35
-        },
-        {
-          "date": "2026-10-07",
-          "revenue": 3.29
-        },
-        {
-          "date": "2026-10-08",
-          "revenue": 20.83
-        },
-        {
-          "date": "2026-10-09",
-          "revenue": 20.59
-        },
-        {
-          "date": "2026-10-10",
-          "revenue": 15.95
-        },
-        {
-          "date": "2026-10-11",
-          "revenue": 6.76
-        },
-        {
-          "date": "2026-10-12",
-          "revenue": 4.19
-        },
-        {
-          "date": "2026-10-13",
-          "revenue": 2.6
-        }
-      ]
-    },
-    {
-      "appId": "741899",
-      "name": "2048修仙传",
-      "url": "https://www.taptap.cn/app/741899",
-      "totalStartDate": "2020-01-01",
-      "iconUrl": "/media/d54cc460f28abcae30a8f7ce8c36034864aaa518826e034ffbcd2cc4fb0350c4.png",
-      "iconSourceUrl": "https://img-tc.tapimg.com/market/images/f2cb23fe7eb30b8c4f5fb14b89e99212.png/_tap_appicon.jpg",
-      "media": [
-        {
-          "kind": "logo",
-          "url": "/media/d54cc460f28abcae30a8f7ce8c36034864aaa518826e034ffbcd2cc4fb0350c4.png"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/b673bba8a71770571eac07459b217f6f902cdb59fb089606553860d286d0ca57.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/a3970844db71e9f351045497ec1b4998f1ea35f205d065712a11b920979d1c20.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/34753ba718ecb522c3310899a1842a8196e850008400528443e2974075e16143.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/82f020e12c5f0e118f1eccd0a4e24148379a11fad20f81ed457b02dc9c003826.jpg"
-        }
-      ],
-      "authorIds": [
-        "studio-284727"
-      ],
-      "status": "unavailable",
-      "asOf": null,
-      "monthStart": null,
-      "updatedAt": null,
-      "history": [],
-      "revenue": {
-        "yesterday": null,
-        "month": null,
-        "total": null
-      }
-    },
-    {
-      "appId": "770879",
-      "name": "僵尸崛起",
-      "url": "https://www.taptap.cn/app/770879",
-      "totalStartDate": "2020-01-01",
-      "iconUrl": "/media/987989983b68fe2df6979d18967ffff2e12a4162f81112a5c13dfeb76d1eaa46.png",
-      "iconSourceUrl": "https://img-tc.tapimg.com/market/images/663f40c4331c45caa9e667c4eae299ec.png/_tap_appicon.jpg",
-      "media": [
-        {
-          "kind": "logo",
-          "url": "/media/987989983b68fe2df6979d18967ffff2e12a4162f81112a5c13dfeb76d1eaa46.png"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/3ee1780c8b4fcfebc4f45f1f8632b96a6b57175b27d8fe423bd9a3baf8c796ca.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/f76ccab523d38242cf75e418104f4566bb2f029ed77ebbc1099c4e6c3d7838db.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/b3f77b4f50c8b3f24a9638114cbfa7fb979bcdf64222d6e48f5694642ceb1038.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/693f26b4918e97a83c20da7deeeed9a1e7e36aa8dd9afa7861054526e007dc67.jpg"
-        },
-        {
-          "kind": "screenshot",
-          "url": "/media/2915037963cf968b3d09593e328c623f6277ffea8618172a4309a107158c9433.jpg"
-        }
-      ],
-      "authorIds": [
-        "studio-269424"
-      ],
-      "status": "unavailable",
-      "asOf": null,
-      "monthStart": null,
-      "updatedAt": null,
-      "history": [],
-      "revenue": {
-        "yesterday": null,
-        "month": null,
-        "total": null
-      }
-    }
-  ],
-  "authors": [
-    {
-      "id": "tap-649821456",
-      "name": "好想成为人类啊",
-      "avatarUrl": "/media/8526ec8a7b672b2e96cb5559fb4beb30cc0ca61514c28a4853e1b7f351a37857.jpg",
-      "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png/_tap_avatar_m.jpg",
-      "tapUrl": "https://www.taptap.cn/user/649821456"
-    },
-    {
-      "id": "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01",
-      "name": "豆腐脑",
-      "avatarUrl": "/media/a7a36a6ae3130622e6fa215fceb620e6dc2daeff852e353cde3855a582801665.jpg",
-      "avatarSourceUrl": "https://q1.qlogo.cn/g?b=qq&nk=394811161&s=100",
-      "tapUrl": "https://www.taptap.cn/user/58689469"
-    },
-    {
-      "id": "studio-284727",
-      "name": "整点薯条工作室",
-      "avatarUrl": null,
-      "avatarSourceUrl": null,
-      "tapUrl": "https://www.taptap.cn/developer/284727"
-    },
-    {
-      "id": "studio-269424",
-      "name": "1234工作室",
-      "avatarUrl": null,
-      "avatarSourceUrl": null,
-      "tapUrl": "https://www.taptap.cn/developer/269424"
+      "id": "hot",
+      "name": "热门榜",
+      "slug": "hot",
+      "games": [],
+      "authors": []
     }
   ]
 }

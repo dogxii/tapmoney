@@ -71,15 +71,15 @@ test('月初不请求反向日期区间，公开快照不包含凭证或查询�
     games: { '959305': { iconUrl: 'https://example.com/game.png', authorIds: ['maker'] } },
     authors: [{ id: 'maker', name: '作者', avatarUrl: 'https://example.com/avatar.png', tapUrl: 'https://www.taptap.cn/user/1', extra: 'must-not-leak' }]
   };
-  const snapshot = await collect({ catalog, env, games: [game], now: new Date('2026-10-31T16:05:00Z'), outputFile, client: {
+  const snapshot = await collect({ catalogBuilder: async () => catalog, env, config: {games: [game], authors: []}, now: new Date('2026-10-31T16:05:00Z'), outputFile, client: {
     get: async () => ({}), revenue: async (...args) => { calls.push(args); return 10; }
   } });
   assert.equal(calls.length, 2);
-  assert.equal(snapshot.games[0].revenue.month, 0);
+  assert.equal(snapshot.boards[0].games[0].revenue.month, 0);
   assert.equal(snapshot.monthStart, '2026-11-01');
-  assert.equal(snapshot.games[0].iconUrl, 'https://example.com/game.png');
-  assert.deepEqual(snapshot.games[0].authorIds, ['maker']);
-  assert.equal(snapshot.authors[0].name, '作者');
+  assert.equal(snapshot.boards[0].games[0].iconUrl, 'https://example.com/game.png');
+  assert.deepEqual(snapshot.boards[0].games[0].authorIds, ['maker']);
+  assert.equal(snapshot.boards[0].authors[0].name, '作者');
   const written = await readFile(outputFile, 'utf8');
   assert.ok(!written.includes('fixture-secret'));
   assert.ok(!written.includes('275960'));
@@ -89,14 +89,14 @@ test('月初不请求反向日期区间，公开快照不包含凭证或查询�
 test('部分失败保留日期和历史收益，新游戏失败保持 null', async t => {
   const outputFile = await fixture(t);
   await writeFile(outputFile, JSON.stringify({ games: [{ ...game, updatedAt: '2026-10-12T03:00:00Z', asOf: '2026-10-11', monthStart: '2026-10-01', revenue: { yesterday: 8, month: 50, total: 90 }, cookie: 'must-not-leak' }] }));
-  const snapshot = await collect({ catalog: { games: {}, authors: [] }, env, games: [game, { ...game, appId: '2' }, { ...game, appId: '3' }], now: new Date('2026-10-14T03:00:00Z'), outputFile, client: {
+  const snapshot = await collect({ catalogBuilder: async () => ({ games: {}, authors: [] }), env, config: { games: [game, { ...game, appId: '2' }, { ...game, appId: '3' }], authors: [] }, now: new Date('2026-10-14T03:00:00Z'), outputFile, client: {
     get: async () => ({}), revenue: async (dev, appId) => { if (appId !== '2') throw new Error('upstream failure'); return 2; }
   } });
-  assert.equal(snapshot.games[0].status, 'stale');
-  assert.equal(snapshot.games[0].asOf, '2026-10-11');
-  assert.equal(snapshot.games[0].revenue.total, 90);
-  assert.equal(snapshot.games[2].status, 'unavailable');
-  assert.equal(snapshot.games[2].revenue.total, null);
+  assert.equal(snapshot.boards[0].games[0].status, 'stale');
+  assert.equal(snapshot.boards[0].games[0].asOf, '2026-10-11');
+  assert.equal(snapshot.boards[0].games[0].revenue.total, 90);
+  assert.equal(snapshot.boards[0].games[2].status, 'unavailable');
+  assert.equal(snapshot.boards[0].games[2].revenue.total, null);
   assert.ok(!(await readFile(outputFile, 'utf8')).includes('must-not-leak'));
 });
 
@@ -104,8 +104,52 @@ test('认证中途失效或全部失败时不覆盖上次快照', async t => {
   const outputFile = await fixture(t);
   const previous = JSON.stringify({ games: [] });
   await writeFile(outputFile, previous);
-  await assert.rejects(() => collect({ catalog: { games: {}, authors: [] }, env, games: [game], outputFile, client: { get: async () => ({}), revenue: async () => { throw new AuthenticationError(); } } }), AuthenticationError);
+  await assert.rejects(() => collect({ catalogBuilder: async () => ({ games: {}, authors: [] }), env, config: { games: [game], authors: [] }, outputFile, client: { get: async () => ({}), revenue: async () => { throw new AuthenticationError(); } } }), AuthenticationError);
   assert.equal(await readFile(outputFile, 'utf8'), previous);
-  await assert.rejects(() => collect({ catalog: { games: {}, authors: [] }, env, games: [game], outputFile, client: { get: async () => ({}), revenue: async () => { throw new Error('failure'); } } }));
+  await assert.rejects(() => collect({ catalogBuilder: async () => ({ games: {}, authors: [] }), env, config: { games: [game], authors: [] }, outputFile, client: { get: async () => ({}), revenue: async () => { throw new Error('failure'); } } }));
   assert.equal(await readFile(outputFile, 'utf8'), previous);
+});
+
+test('多榜采集仅复用相同工作室、游戏和日期的报表，作者和累计区间保持独立', async t => {
+  const outputFile = await fixture(t);
+  const author = name => ({ id: 'maker', name, gameIds: [game.appId] });
+  const config = { boards: [
+    { id: 'home', slug: '', name: '群友榜', games: [game], authors: [author('群友')] },
+    { id: 'hot', slug: 'hot', name: '热门榜', games: [game], authors: [author('热门')] },
+    { id: 'other', slug: 'other', name: '其他榜', games: [{ ...game, totalStartDate: '2026-10-01' }], authors: [] },
+    { id: 'studio', slug: 'studio', name: '其他工作室', games: [{ ...game, queryDeveloperId: '123' }], authors: [] }
+  ] };
+  const calls = [];
+  const snapshot = await collect({ env, config, outputFile, now: new Date('2026-10-14T03:00:00Z'), catalogBuilder: async (games, {authors, retainMedia}) => {
+    if (authors[0]?.name === '热门') assert.ok(retainMedia.includes('https://example.com/群友.png'));
+    return { games: { [game.appId]: { iconUrl: `https://example.com/${authors[0]?.name}.png`, authorIds: authors.map(a=>a.id), authorMode: 'manual' } }, authors };
+  }, client: {
+    get: async () => ({}),
+    revenue: async (...args) => { calls.push(['revenue', ...args]); return 1; },
+    report: async (...args) => { calls.push(['report', ...args]); return { total: args[2] === '2020-01-01' ? 20 : 8, history: [] }; }
+  } });
+  assert.equal(calls.length, 7); // 同工作室共 2 个期间收益 + 2 个累计区间；另一工作室 3 次。
+  assert.deepEqual(snapshot.boards.map(b=>b.games[0].revenue.total), [20,20,8,20]);
+  assert.equal(snapshot.boards[0].authors[0].name, '群友');
+  assert.equal(snapshot.boards[1].authors[0].name, '热门');
+  assert.ok(!JSON.stringify(snapshot).includes('gameIds'));
+  assert.ok(!JSON.stringify(snapshot).includes('queryDeveloperId'));
+});
+
+test('同游戏跨榜采集失败时，各榜只保留自己的历史和日期，不从其他榜复制数据', async t => {
+  const outputFile = await fixture(t);
+  const config = { boards: [
+    { id: 'home', slug: '', name: '群友榜', games: [game], authors: [] },
+    { id: 'hot', slug: 'hot', name: '热门榜', games: [game, { ...game, appId: '2' }], authors: [] }
+  ] };
+  const saved = (value, date) => ({ ...game, updatedAt: date+'T03:00:00Z', asOf: date, monthStart: '2026-10-01', revenue: { yesterday: value, month: value, total: value }, history: [{date, revenue:value}] });
+  await writeFile(outputFile, JSON.stringify({ schemaVersion: 2, boards: config.boards.map((b,i)=>({...b,games:[saved(i+1,`2026-10-${10+i}`)]})) }));
+  const snapshot = await collect({ env, config, outputFile, now: new Date('2026-10-14T03:00:00Z'), catalogBuilder: async () => ({games:{},authors:[]}), client: {
+    get: async () => ({}), revenue: async (dev, app) => { if(app === game.appId) throw new Error('upstream'); return 0; }
+  } });
+  assert.equal(snapshot.boards[0].games[0].revenue.total, 1);
+  assert.equal(snapshot.boards[0].games[0].asOf, '2026-10-10');
+  assert.equal(snapshot.boards[1].games[0].revenue.total, 2);
+  assert.equal(snapshot.boards[1].games[0].asOf, '2026-10-11');
+  assert.deepEqual(snapshot.boards[1].games[0].history, [{date:'2026-10-11',revenue:2}]);
 });

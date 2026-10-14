@@ -7,7 +7,7 @@ export { imageUrl, tapProfileUrl, qqAvatarUrl, normalizeAuthors, extractGameMeta
 export async function buildCatalog(games, {
   authors, request = fetch, cacheFile = path.join(ROOT, '.local/game-metadata.json'), now = new Date(), refresh = false, wait = sleep, mediaCache = cacheMedia, retainMedia = []
 } = {}) {
-  authors = normalizeAuthors(authors ?? await readJson(path.join(ROOT, 'config/authors.json'), []));
+  authors = normalizeAuthors(authors ?? []);
   const cache = await readJson(cacheFile, {});
   let changed = false;
   for (const game of games) {
@@ -35,7 +35,7 @@ export async function buildCatalog(games, {
       profiles.set(id, { id, name, avatarUrl, tapUrl });
     }
     const iconUrl = imageUrl(game.iconUrl) ?? metadata?.iconUrl ?? null;
-    entries[game.appId] = { iconUrl, media: [...(iconUrl ? [{kind: 'logo', url: iconUrl}] : []), ...(metadata?.media ?? []).filter(item => item.kind === 'screenshot')], authorIds: selected.map(author => author.id) };
+    entries[game.appId] = { iconUrl, media: [...(iconUrl ? [{kind: 'logo', url: iconUrl}] : []), ...(metadata?.media ?? []).filter(item => item.kind === 'screenshot')], authorIds: selected.map(author => author.id), authorMode: bound.length ? 'manual' : 'auto' };
   }
   return mediaCache({ games: entries, authors: [...profiles.values()] }, { retainMedia });
 }
