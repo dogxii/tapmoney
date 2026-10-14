@@ -12,7 +12,7 @@ export async function tokenHash(token) {
 }
 
 export async function authenticated(request, expected) {
-  const token = request.headers.get('Authorization')?.match(/^Bearer (\S{32,256})$/)?.[1];
+  const token = request.headers.get('Authorization')?.match(/^Bearer (\S{1,256})$/)?.[1];
   if (!token || !/^[a-f0-9]{64}$/.test(expected ?? '')) return false;
   const actual = await tokenHash(token);
   let difference = 0;

@@ -27,6 +27,16 @@ function request(route, { method = 'GET', body, authorized = true, origin } = {}
   });
 }
 
+test('更换为短 Token 后，新 Token 可登录，旧 Token 和错误 Token 均失效', async t => {
+  const { env } = await fixture(t);
+  const newToken = 'short-key';
+  env.ADMIN_TOKEN_HASH = await tokenHash(newToken);
+  for (const [value, status] of [[newToken, 200], [token, 401], ['wrong-key', 401], ['short key', 401], ['x'.repeat(257), 401]]) {
+    const login = new Request('https://tapmoney.example/api/admin/config', { headers: { Authorization: `Bearer ${value}` } });
+    assert.equal((await worker.fetch(login, env)).status, status);
+  }
+});
+
 test('未登录或跨站请求不能读取、修改配置或上传快照', async t => {
   const { env, sqlite } = await fixture(t);
   for (const [route, method] of [['/api/admin/config', 'GET'], ['/api/admin/config', 'PUT'], ['/api/internal/snapshot', 'PUT']]) {
