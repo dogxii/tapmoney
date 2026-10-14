@@ -29,8 +29,9 @@ async function login() {
             const listResponse = await context.request.get(`${ORIGIN}/api/developer/v1/list`, { headers: { Referer: `${ORIGIN}/` }, timeout: 10000 });
             const studios = listResponse.ok() ? (await listResponse.json()).data?.list ?? [] : [];
             const ids = studios.map(studio => String(studio.developer_id ?? studio.developerId ?? studio.id ?? '')).filter(id => /^\d+$/.test(id));
-            const pathId = page.url().match(/developer\.taptap\.cn\/(?:v3\/)?(\d+)(?:\/|$)/)?.[1];
-            if (pathId && ids.includes(pathId)) developerId = pathId;
+            // 登录或工作室选择可能打开新标签页；以实际打开的工作室为准。
+            const pathId = context.pages().map(tab => tab.url().match(/^https:\/\/developer\.taptap\.cn\/(?:v3\/)?(\d+)(?:\/|$)/)?.[1]).find(id => ids.includes(id));
+            if (pathId) developerId = pathId;
             else if (existing.TAPTAP_DEVELOPER_ID && ids.includes(existing.TAPTAP_DEVELOPER_ID)) developerId = existing.TAPTAP_DEVELOPER_ID;
             else if (ids.length === 1) developerId = ids[0];
             else if (ids.length === 0) {
