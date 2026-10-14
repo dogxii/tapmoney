@@ -4,7 +4,11 @@ export { imageUrl } from './config.mjs';
 export function normalizeConfig(input) {
   const games = normalizeGames(input.games);
   if (!Array.isArray(input.authors) || input.authors.length > 300) throw new Error('作者列表最多支持 300 位。');
-  const authors = normalizeAuthors(input.authors).map((author, index) => ({ ...author, qq: String(input.authors[index].qq ?? '') }));
+  const authors = normalizeAuthors(input.authors).map((author, index) => {
+    const qq = String(input.authors[index].qq ?? '').trim();
+    const avatarUrl = imageUrl(input.authors[index].avatarUrl);
+    return { ...author, qq, avatarUrl: qq && avatarUrl === qqAvatarUrl(qq) ? null : avatarUrl };
+  });
   const gameIds = new Set(games.map(game => game.appId));
   if (authors.some(author => author.gameIds.some(id => !gameIds.has(id)))) throw new Error('作者只能绑定已添加的游戏。');
   return { games, authors };
@@ -30,7 +34,9 @@ export function normalizeAuthors(list) {
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(item.id ?? '') || ids.has(item.id)) throw new Error('作者 id 需要唯一，只能包含字母、数字、下划线或短横线。');
     ids.add(item.id);
     if (typeof item.name !== 'string' || !item.name.trim()) throw new Error(`作者 ${item.id} 缺少昵称。`);
-    const avatarUrl = item.qq ? qqAvatarUrl(item.qq) : imageUrl(item.avatarUrl);
+    const qq = String(item.qq ?? '').trim();
+    const fallback = qq ? qqAvatarUrl(qq) : null;
+    const avatarUrl = imageUrl(item.avatarUrl) ?? fallback;
     if (item.avatarUrl && !imageUrl(item.avatarUrl)) throw new Error(`作者 ${item.id} 的头像必须是 HTTPS 图片链接。`);
     const tapUrl = item.tapUrl ? tapProfileUrl(item.tapUrl) : null;
     if (item.tapUrl && !tapUrl) throw new Error(`作者 ${item.id} 的 TapTap 主页链接无效。`);

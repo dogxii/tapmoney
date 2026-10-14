@@ -1,6 +1,7 @@
 import { normalizeGames, validDate, imageUrl } from '../shared/config.mjs';
 import { normalizeAuthors, normalizeConfig, extractGameMetadata } from '../shared/catalog.mjs';
 import { mediaUrl, cleanMedia } from '../shared/media.mjs';
+import { collectionStatus, dispatchCollection } from './collection.mjs';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
@@ -24,9 +25,10 @@ export async function authenticated(request, expected) {
 export function publicRanking(snapshot, config) {
   const old = new Map((snapshot.games ?? []).map(game => [game.appId, game]));
   const profiles = new Map((snapshot.authors ?? []).map(author => [author.id, author]));
+  const authors = normalizeAuthors(config.authors);
   const games = config.games.map(game => {
     const saved = old.get(game.appId);
-    const bound = config.authors.filter(author => author.gameIds.includes(game.appId));
+    const bound = authors.filter(author => author.gameIds.includes(game.appId));
     for (const author of bound) {
       const cached = profiles.get(author.id);
       profiles.set(author.id, { ...author, avatarUrl: cached?.avatarSourceUrl === author.avatarUrl ? cached.avatarUrl : author.avatarUrl, avatarSourceUrl: author.avatarUrl });
@@ -105,7 +107,16 @@ async function handle(request, env) {
     if (!await authenticated(request, env.ADMIN_TOKEN_HASH)) return json({ error: '管理 Token 无效。' }, 401);
   }
   if (route === '/api/admin/config' && request.method === 'GET') {
-    return json(await document(env.DB, 'config') ?? { games: [], authors: [], revision: 0 });
+    const saved = await document(env.DB, 'config');
+    return json(saved ? { ...normalizeConfig(saved), revision: saved.revision } : { games: [], authors: [], revision: 0 });
+  }
+  if (route === '/api/admin/collect' && ['GET', 'POST'].includes(request.method)) {
+    try {
+      const result = request.method === 'POST' ? await dispatchCollection(env) : await collectionStatus(env);
+      return json(result, request.method === 'POST' ? 202 : 200);
+    } catch (error) {
+      return json({ error: error.message }, 503);
+    }
   }
   if (route === '/api/admin/config' && request.method === 'PUT') {
     const input = await readBody(request);

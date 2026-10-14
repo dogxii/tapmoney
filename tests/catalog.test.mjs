@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildCatalog, extractGameMetadata, normalizeAuthors, imageUrl, tapProfileUrl } from '../scripts/catalog.mjs';
+import { normalizeConfig } from '../shared/catalog.mjs';
 
 const icon = 'https://img-tc.tapimg.com/market/images/game.png/_tap_appicon.jpg';
 const avatar = 'https://img3-tc.tapimg.com/avatars/author.png/_tap_avatar.jpg';
@@ -33,7 +34,8 @@ test('公开页解析真实 Logo 和制作人，忽略其他普通用户链接',
 
 test('作者可使用 QQ 头像绑定多款游戏，限制头像与主页链接', () => {
   const [author] = normalizeAuthors([{ id: 'maker', name: '作者', qq: '12345678', avatarUrl: avatar, tapUrl: 'https://taptap.cn/user/649821456/?from=other', gameIds: ['959305', 42, '42'] }]);
-  assert.equal(author.avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=12345678&s=100');
+  assert.equal(author.avatarUrl, avatar);
+  assert.equal(normalizeAuthors([{ id: 'qq', name: '作者', qq: '12345678', avatarUrl: '', gameIds: [] }])[0].avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=12345678&s=100');
   assert.equal(author.tapUrl, 'https://www.taptap.cn/user/649821456');
   assert.deepEqual(author.gameIds, ['959305', '42']);
   assert.equal(normalizeAuthors([{ id: 'link', name: '作者', avatarUrl: author.avatarUrl, gameIds: [] }])[0].avatarUrl, author.avatarUrl);
@@ -42,6 +44,17 @@ test('作者可使用 QQ 头像绑定多款游戏，限制头像与主页链接'
   assert.equal(tapProfileUrl('https://example.com/user/649821456'), null);
   assert.throws(() => normalizeAuthors([{ id: 'bad', name: '作者', qq: 'abc', gameIds: [] }]));
   assert.throws(() => normalizeAuthors([{ id: 'bad', name: '作者', avatarUrl: 'http://example.com/avatar.jpg', gameIds: [] }]));
+});
+
+test('配置保存头像留空的意图，编辑 QQ 后不会继续使用旧 QQ 头像', () => {
+  const author = { id: 'maker', name: '作者', qq: '12345678', avatarUrl: '', gameIds: [] };
+  const saved = normalizeConfig({ games: [], authors: [author] });
+  assert.equal(saved.authors[0].avatarUrl, null);
+  const changed = normalizeAuthors([{ ...saved.authors[0], qq: '87654321' }])[0];
+  assert.equal(changed.avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=87654321&s=100');
+  const legacy = normalizeConfig({ games: [], authors: [{ ...author, avatarUrl: 'https://q1.qlogo.cn/g?b=qq&nk=12345678&s=100' }] });
+  assert.equal(legacy.authors[0].avatarUrl, null);
+  assert.equal(normalizeAuthors([{ ...author, qq: '' }])[0].avatarUrl, null);
 });
 
 test('作者绑定优先，公开资料采集不携带后台 Cookie，缓存失败沿用历史资料', async t => {

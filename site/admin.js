@@ -5,6 +5,9 @@ export function initAdmin({ onSaved }) {
   dialog.setAttribute('aria-label', '管理');
   const entry = document.querySelector('#manage-open');
   let token = '', config, tab = 'games';
+  let collection, collectionError = '', collecting = false, checking = false, collectionTimer;
+  const activeCollection = () => ['requested', 'queued', 'in_progress', 'waiting', 'pending'].includes(collection?.status);
+  const coolingDown = () => Date.parse(collection?.nextAllowedAt) > Date.now();
   try { token = sessionStorage.getItem('tapmoney-admin') ?? ''; } catch { /* 可仅使用内存登录 */ }
   const remember = () => { try { if (token) sessionStorage.setItem('tapmoney-admin', token); else sessionStorage.removeItem('tapmoney-admin'); } catch { /* 存储不可用 */ } };
   const syncEntry = () => { entry.replaceChildren(icon(config ? 'edit' : 'plus')); entry.title = config ? '管理游戏与作者' : '管理'; entry.setAttribute('aria-label', entry.title); };
@@ -38,6 +41,7 @@ export function initAdmin({ onSaved }) {
     wrapper.append(input); return { wrapper, input };
   }
   function showLogin(error = '') {
+    clearTimeout(collectionTimer); collection = null; collectionError = '';
     dialog.replaceChildren(header('管理'));
     const form = node('form', 'login-form');
     const credential = field('管理 Token', '', { type: 'password', required: true }); credential.input.autocomplete = 'off'; credential.input.spellcheck = false;
@@ -46,7 +50,7 @@ export function initAdmin({ onSaved }) {
     form.append(credential.wrapper, status, submit); dialog.append(form);
     form.addEventListener('submit', async event => {
       event.preventDefault(); token = credential.input.value.trim(); credential.input.value = ''; submit.disabled = true; setMessage(status, '正在验证');
-      try { config = await api('/api/admin/config'); remember(); syncEntry(); showPanel(); }
+      try { config = await api('/api/admin/config'); remember(); syncEntry(); showPanel(); checkCollection(); }
       catch (error) { token = ''; config = null; remember(); setMessage(status, error.message, true); }
       finally { submit.disabled = false; }
     });
@@ -61,11 +65,21 @@ export function initAdmin({ onSaved }) {
       button.addEventListener('click', () => { tab = key; showPanel(); }); tabs.append(button);
     }
     const add = node('button', 'secondary-button'); add.type = 'button'; add.append(icon('plus'), document.createTextNode(tab === 'games' ? '添加游戏' : '添加作者'));
-    add.addEventListener('click', () => tab === 'games' ? editGame() : editAuthor()); toolbar.append(tabs, add);
+    add.addEventListener('click', () => tab === 'games' ? editGame() : editAuthor());
+    const collect = iconButton('refresh', '手动采集'); collect.id = 'admin-collect';
+    collect.addEventListener('click', async () => {
+      collecting = true; collectionError = ''; updateCollection();
+      try { collection = await api('/api/admin/collect', { method: 'POST' }); }
+      catch (error) { collectionError = error.message; if (!config) { showLogin(error.message); return; } }
+      finally { collecting = false; }
+      updateCollection(); scheduleCollectionCheck();
+    });
+    const tools = node('div', 'dialog-actions'); tools.append(collect, add); toolbar.append(tabs, tools);
     const list = node('div', 'admin-list');
     for (const item of config[tab]) {
       const row = node('div', 'admin-row');
-      row.append(portrait(tab === 'games' ? item.iconUrl : item.avatarUrl, item.name, tab === 'games' ? 'game-logo' : 'avatar'));
+      const avatarUrl = item.avatarUrl || (item.qq ? `https://q1.qlogo.cn/g?b=qq&nk=${encodeURIComponent(item.qq)}&s=100` : null);
+      row.append(portrait(tab === 'games' ? item.iconUrl : avatarUrl, item.name, tab === 'games' ? 'game-logo' : 'avatar'));
       const text = node('div', 'admin-row-text'); text.append(node('strong', '', item.name));
       text.append(node('span', '', tab === 'games' ? item.appId : `${item.gameIds.length} 款游戏`)); row.append(text);
       const edit = iconButton('edit', `编辑${item.name}`); edit.addEventListener('click', () => tab === 'games' ? editGame(item) : editAuthor(item));
@@ -82,13 +96,53 @@ export function initAdmin({ onSaved }) {
       const actions = node('div', 'dialog-actions'); actions.append(edit, remove); row.append(actions); list.append(row);
     }
     if (!config[tab].length) list.append(node('div', 'empty', tab === 'games' ? '暂无游戏' : '暂无作者'));
-    dialog.append(toolbar, list, message(feedback));
+    const collectionStatus = node('div', 'admin-collection'); collectionStatus.id = 'admin-collection-status'; collectionStatus.setAttribute('role', 'status');
+    dialog.append(toolbar, list, collectionStatus, message(feedback));
+    updateCollection(); scheduleCollectionCheck();
+  }
+  function updateCollection() {
+    const button = dialog.querySelector('#admin-collect');
+    const status = dialog.querySelector('#admin-collection-status');
+    if (!button || !status) return;
+    const busy = collecting || activeCollection();
+    button.disabled = !collection?.enabled || busy || coolingDown();
+    button.classList.toggle('collecting', busy);
+    button.title = collection?.enabled === false ? '手动采集尚未配置' : busy ? '采集进行中' : coolingDown() ? '请稍后再采集' : '手动采集';
+    status.replaceChildren();
+    const labels = { requested: '等待采集', queued: '采集排队中', in_progress: '采集中', waiting: '等待采集', pending: '等待采集' };
+    let text = collectionError || (collecting ? '正在提交' : labels[collection?.status] ?? '');
+    if (!text && collection?.status === 'completed') text = collection.conclusion === 'success' ? '采集完成' : collection.conclusion === 'cancelled' ? '采集已取消' : '采集失败';
+    if (!text && collection?.enabled === false) text = '手动采集尚未配置';
+    status.hidden = !text;
+    status.classList.toggle('error', Boolean(collectionError) || collection?.status === 'completed' && collection.conclusion !== 'success');
+    status.append(node('span', '', text));
+    if (collection?.url) {
+      const link = node('a', 'icon-button'); link.href = collection.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.title = '查看采集任务'; link.setAttribute('aria-label', link.title); link.append(icon('external')); status.append(link);
+    }
+  }
+  function scheduleCollectionCheck() {
+    clearTimeout(collectionTimer);
+    if (dialog.open && config && dialog.querySelector('#admin-collect') && (activeCollection() || coolingDown())) collectionTimer = setTimeout(checkCollection, 10000);
+  }
+  async function checkCollection() {
+    if (checking || !config) return;
+    checking = true;
+    const wasActive = activeCollection();
+    try {
+      collection = await api('/api/admin/collect'); collectionError = '';
+      if (wasActive && collection.status === 'completed' && collection.conclusion === 'success') await onSaved();
+    } catch (error) {
+      collectionError = error.message;
+      if (!config && dialog.open) showLogin(error.message);
+    } finally { checking = false; }
+    updateCollection(); scheduleCollectionCheck();
   }
   async function save(next) {
     config = await api('/api/admin/config', { method: 'PUT', body: JSON.stringify(next) });
     syncEntry(); await onSaved();
   }
   function editor(title) {
+    clearTimeout(collectionTimer);
     dialog.replaceChildren(header(title, true));
     const form = node('form', 'editor-form'); const fields = node('div', 'form-fields'); const status = message();
     const actions = node('div', 'form-actions');
@@ -140,7 +194,7 @@ export function initAdmin({ onSaved }) {
       const updated = { ...(game ?? {}), appId, name: name.input.value.trim(), iconUrl: logo.input.value.trim(), totalStartDate: start.input.value };
       if (game) next.games = next.games.map(item => item.appId === game.appId ? updated : item); else next.games.push(updated);
       if (select.value !== '__keep') next.authors.forEach(author => { author.gameIds = author.gameIds.filter(value => value !== appId); if (author.id === select.value) author.gameIds.push(appId); });
-      try { await save(next); showPanel(game ? '已保存' : '已添加，下次每日采集后更新收益'); }
+      try { await save(next); showPanel(game ? '已保存' : '已添加，可手动采集更新收益'); }
       catch (error) { if (!config) showLogin(error.message); else setMessage(view.status, error.message, true); }
       finally { view.submit.disabled = false; }
     });
@@ -149,7 +203,7 @@ export function initAdmin({ onSaved }) {
     const view = editor(author ? '编辑作者' : '添加作者');
     const name = field('昵称', author?.name ?? '', { required: true }); name.input.maxLength = 64;
     const qq = field('QQ 号', author?.qq ?? '', { placeholder: '选填' }); qq.input.inputMode = 'numeric';
-    const avatar = field('头像链接', author?.avatarUrl ?? '', { type: 'url', placeholder: 'QQ 或其他 HTTPS 头像链接' });
+    const avatar = field('头像链接', author?.avatarUrl ?? '', { type: 'url', placeholder: '留空使用 QQ 号头像' });
     const tap = field('TapTap 主页', author?.tapUrl ?? '', { type: 'url', placeholder: '选填' });
     view.fields.append(name.wrapper, qq.wrapper, avatar.wrapper, tap.wrapper);
     const bindings = node('fieldset', 'bindings'); bindings.append(node('legend', '', '绑定游戏'));
@@ -174,10 +228,10 @@ export function initAdmin({ onSaved }) {
     if (!dialog.open) dialog.showModal();
     if (!token) { showLogin(); return; }
     dialog.replaceChildren(header('管理'), message('正在加载'));
-    try { config = await api('/api/admin/config'); syncEntry(); showPanel(); }
+    try { config = await api('/api/admin/config'); syncEntry(); showPanel(); checkCollection(); }
     catch (error) { showLogin(error.message); }
   });
-  dialog.addEventListener('close', () => { if (!config) dialog.replaceChildren(); });
+  dialog.addEventListener('close', () => { clearTimeout(collectionTimer); if (!config) dialog.replaceChildren(); });
   syncEntry();
   if (token) api('/api/admin/config').then(data => { config = data; syncEntry(); }).catch(() => { token = ''; remember(); });
 }

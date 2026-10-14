@@ -41,7 +41,7 @@ npm run preview
 ]
 ```
 
-QQ 号优先生成 QQ 头像，头像也可填 HTTPS URL。TapTap / QQ 图片保存到 `site/media/`，随网页同源发布，供本地导图使用。手动作者绑定优先于公开页自动识别。`[]` 可发布空榜。
+头像填写 HTTPS URL 时优先使用该链接；留空且填写 QQ 号时自动使用 QQ 头像接口，两个字段都为空时展示昵称首字。修改 QQ 号会更新默认头像。TapTap / QQ 图片保存到 `site/media/`，随网页同源发布，供本地导图使用。手动作者绑定优先于公开页自动识别。`[]` 可发布空榜。
 
 ## Pages 与每日更新
 
@@ -89,7 +89,17 @@ npm run deploy
 
 在线管理模式用 Pages Functions + D1，只有 `/api/*` 请求进入 Functions，其余文件静态托管。点击右下角淡色 `+` 输入管理 Token，可编辑游戏、作者、QQ 头像、TapTap 主页和绑定；Token 只保存在当前标签页的会话存储，Cloudflare 保存 SHA-256 哈希。写入有认证与配置版本冲突保护。
 
-**云模式以 D1 为配置来源**；采集时将云配置备份到 `config/`。此时不要直接修改仓库配置，它会被云配置覆盖。新增游戏等下一次采集获得收益，管理前台不即时查询后台报表。静态 JSON 是公开镜像，实时 API 可立即反映作者 / 游戏配置变化。
+**云模式以 D1 为配置来源**；采集时将云配置备份到 `config/`。此时不要直接修改仓库配置，它会被云配置覆盖。新增游戏可手动采集或等待每日任务获得收益。静态 JSON 是公开镜像，实时 API 可立即反映作者 / 游戏配置变化。
+
+管理页工具栏的采集图标可触发同一套 **Update ranking** 工作流，并显示排队、运行、成功或失败状态。关闭管理页不影响任务，完成后自动刷新榜单；已有任务运行时复用该任务，多标签页提交也不会重复派发。
+
+启用手动采集：在 GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens 创建专用 Token，Repository access 仅选择此仓库，Repository permissions 只添加 **Actions: Read and write**（Metadata 只读自动授予）。将 Token 保存到本地 `.local/github-actions-token.txt`，然后运行：
+
+```bash
+npm run collect:setup -- 你的用户名/仓库名 --token-file .local/github-actions-token.txt
+```
+
+脚本将仓库名和专用 Token 配置为 Pages 的 `COLLECT_REPOSITORY` / `COLLECT_TOKEN` 服务端 Secret；重新部署后生效。也可在 Pages 控制台直接配置这两项。Token 到期后替换 Secret 并重新部署。浏览器只发送管理 Token，TapTap Cookie 仍由 Actions 使用。
 
 本机每日运行仍可用 `npm run daily`，仅采集用 `npm run daily -- --collect-only`。macOS 可用 `npm run schedule -- install --time 10:30`；启用 Actions 后用 `npm run schedule -- remove` 移除本机重复任务。
 

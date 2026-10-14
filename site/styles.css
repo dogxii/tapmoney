@@ -173,6 +173,12 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
 .admin-message.error { color: var(--red); }
 .admin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
 .admin-toolbar .tabs button { padding: 4px 15px; }
+.admin-collection { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--muted); }
+.admin-collection.error { color: var(--red); }
+.admin-collection .icon-button { width: 24px; height: 24px; }
+.admin-collection .icon { width: 12px; height: 12px; }
+.collecting .icon { animation: collect-spin 1.5s linear infinite; }
+@keyframes collect-spin { to { transform: rotate(360deg); } }
 .admin-list { max-height: 400px; overflow-y: auto; }
 .admin-row { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--line); }
 .admin-row:last-child { border-bottom: 0; }
