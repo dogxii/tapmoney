@@ -75,7 +75,7 @@ export function initAdmin({ onSaved, getBoardId }) {
     }
     const add = node('button', 'secondary-button'); add.type = 'button'; add.append(icon('plus'), document.createTextNode(tab === 'games' ? '添加游戏' : tab === 'authors' ? '添加作者' : '新建榜单'));
     add.addEventListener('click', () => tab === 'games' ? editGame() : tab === 'authors' ? editAuthor() : editBoard());
-    const collect = iconButton('refresh', '采集全部榜单'); collect.id = 'admin-collect';
+    const collect = iconButton('refresh', '采集下一批'); collect.id = 'admin-collect';
     collect.addEventListener('click', async () => {
       collecting = true; collectionError = ''; updateCollection();
       try { collection = await api('/api/admin/collect', { method: 'POST' }); }
@@ -119,11 +119,11 @@ export function initAdmin({ onSaved, getBoardId }) {
     const busy = collecting || activeCollection();
     button.disabled = !collection?.enabled || busy || coolingDown();
     button.classList.toggle('collecting', busy);
-    button.title = collection?.enabled === false ? '手动采集尚未配置' : busy ? '采集进行中' : coolingDown() ? '请稍后再采集' : '采集全部榜单';
+    button.title = collection?.enabled === false ? '手动采集尚未配置' : busy ? '采集进行中' : coolingDown() ? '请稍后再采集' : '采集下一批';
     status.replaceChildren();
     const labels = { requested: '等待采集', queued: '采集排队中', in_progress: '采集中', waiting: '等待采集', pending: '等待采集' };
     let text = collectionError || (collecting ? '正在提交' : labels[collection?.status] ?? '');
-    if (!text && collection?.status === 'completed') text = collection.conclusion === 'success' ? '采集完成' : collection.conclusion === 'cancelled' ? '采集已取消' : '采集失败';
+    if (!text && collection?.status === 'completed') text = collection.conclusion === 'success' ? '本批采集完成' : collection.conclusion === 'cancelled' ? '采集已取消' : '采集失败';
     if (!text && collection?.enabled === false) text = '手动采集尚未配置';
     status.hidden = !text;
     status.classList.toggle('error', Boolean(collectionError) || collection?.status === 'completed' && collection.conclusion !== 'success');

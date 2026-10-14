@@ -121,14 +121,60 @@ test('部分失败保留日期和历史收益，新游戏失败保持 null', asy
   assert.ok(!(await readFile(outputFile, 'utf8')).includes('must-not-leak'));
 });
 
-test('认证中途失效或全部失败时不覆盖上次快照', async t => {
+test('认证中途失效时不覆盖上次快照', async t => {
   const outputFile = await fixture(t);
   const previous = JSON.stringify({ games: [] });
   await writeFile(outputFile, previous);
   await assert.rejects(() => collect({ catalogBuilder: async () => ({ games: {}, authors: [] }), env, config: { games: [game], authors: [] }, outputFile, client: { get: async () => ({}), revenue: async () => { throw new AuthenticationError(); } } }), AuthenticationError);
   assert.equal(await readFile(outputFile, 'utf8'), previous);
-  await assert.rejects(() => collect({ catalogBuilder: async () => ({ games: {}, authors: [] }), env, config: { games: [game], authors: [] }, outputFile, client: { get: async () => ({}), revenue: async () => { throw new Error('failure'); } } }));
-  assert.equal(await readFile(outputFile, 'utf8'), previous);
+});
+
+test('分批续采只请求本批游戏，保留未处理游戏，完成后不再请求 TapTap', async t => {
+  const outputFile = await fixture(t);
+  const config = { games: Array.from({length:5}, (_,i)=>({...game,appId:String(i+1)})), authors: [] };
+  const calls = [], catalogs = [];
+  const options = { env: {...env,TAPMONEY_BATCH_SIZE:'2'}, config, outputFile,
+    catalogBuilder: async games => { catalogs.push(games.map(g=>g.appId)); return {games:{},authors:[]}; },
+    client: { get: async () => { calls.push('auth'); }, revenue: async (dev,app) => { calls.push(app); return Number(app); } }
+  };
+  const first=await collect({...options,now:new Date('2026-10-14T03:00:00Z')});
+  assert.deepEqual(first.boards[0].games.map(g=>g.status),['ok','ok','pending','pending','pending']);
+  const second=await collect({...options,now:new Date('2026-10-14T04:00:00Z')});
+  assert.deepEqual(second.boards[0].games[0],first.boards[0].games[0]);
+  assert.equal(second.boards[0].games[4].revenue.total,null);
+  await collect({...options,now:new Date('2026-10-14T05:00:00Z')});
+  const before=calls.length;
+  const finished=await collect({...options,now:new Date('2026-10-14T06:00:00Z')});
+  assert.ok(finished.boards[0].games.every(g=>g.status==='ok'));
+  assert.equal(calls.length,before);
+  assert.deepEqual(catalogs,[['1','2'],['3','4'],['5']]);
+  assert.equal(calls.filter(c=>c==='auth').length,3);
+  const forced=await collect({...options,force:true,now:new Date('2026-10-14T07:00:00Z')});
+  assert.equal(forced.boards[0].games[0].updatedAt,'2026-10-14T07:00:00.000Z');
+});
+
+test('失败批次记录尝试时间并让出队列，次日重试，历史金额和日期不变', async t => {
+  const outputFile = await fixture(t);
+  const config={games:[game,{...game,appId:'2'}],authors:[]};
+  const saved={...game,status:'ok',asOf:'2026-10-12',monthStart:'2026-10-01',updatedAt:'2026-10-13T03:00:00Z',revenue:{yesterday:7,month:8,total:9},history:[{date:'2026-10-12',revenue:7}]};
+  await writeFile(outputFile,JSON.stringify({games:[saved],authors:[]}));
+  const calls=[];
+  const options={env:{...env,TAPMONEY_BATCH_SIZE:'1'},config,outputFile,
+    catalogBuilder:async()=>({games:{},authors:[]}),
+    client:{get:async()=>({}),revenue:async(dev,app)=>{calls.push(app);throw new Error('无数值记录');}}
+  };
+  const first=await collect({...options,now:new Date('2026-10-14T03:00:00Z')});
+  assert.equal(calls[0],'2'); // 未采集过的游戏优先。
+  assert.equal(first.boards[0].games[1].status,'unavailable');
+  assert.equal(first.boards[0].games[0].status,'stale');
+  const second=await collect({...options,now:new Date('2026-10-14T04:00:00Z')});
+  assert.deepEqual(calls,['2',game.appId]);
+  assert.deepEqual(second.boards[0].games[0].revenue,saved.revenue);
+  assert.equal(second.boards[0].games[0].asOf,saved.asOf);
+  await collect({...options,now:new Date('2026-10-14T05:00:00Z')});
+  assert.equal(calls.length,2);
+  await collect({...options,now:new Date('2026-10-15T03:00:00Z')});
+  assert.equal(calls.at(-1),'2');
 });
 
 test('部分采集成功后遇限流也停止后续游戏，完整保留上次快照', async t => {

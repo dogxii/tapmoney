@@ -3,6 +3,8 @@ import { normalizeAuthors, normalizeConfig, extractGameMetadata } from '../share
 import { mediaUrl, cleanMedia } from '../shared/media.mjs';
 import { boardsOf, boardInfo, validateBoards } from '../shared/boards.mjs';
 import { collectionStatus, dispatchCollection } from './collection.mjs';
+import { publicRanking } from '../shared/snapshot.mjs';
+export { publicRanking } from '../shared/snapshot.mjs';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
@@ -23,47 +25,6 @@ export async function authenticated(request, expected) {
 }
 
 
-export function publicRanking(snapshot, config) {
-  const old = new Map(boardsOf(snapshot).map(board => [board.id, board]));
-  return {
-    schemaVersion: 2, generatedAt: snapshot.generatedAt ?? null, asOf: snapshot.asOf ?? null,
-    monthStart: snapshot.monthStart ?? null, timezone: 'Asia/Shanghai', currency: 'CNY', source: 'TapTap 小游戏广告收益报表',
-    boards: normalizeConfig(config).boards.map(board => ({ ...boardInfo(board), ...publicBoard(old.get(board.id) ?? {}, board) }))
-  };
-}
-
-function publicBoard(snapshot, config) {
-  const old = new Map((snapshot.games ?? []).map(game => [game.appId, game]));
-  const profiles = new Map((snapshot.authors ?? []).map(author => [author.id, author]));
-  const authors = normalizeAuthors(config.authors);
-  const games = config.games.map(game => {
-    const saved = old.get(game.appId);
-    const bound = authors.filter(author => author.gameIds.includes(game.appId));
-    for (const author of bound) {
-      const cached = profiles.get(author.id);
-      profiles.set(author.id, { ...author, avatarUrl: cached?.avatarSourceUrl === author.avatarUrl ? cached.avatarUrl : author.avatarUrl, avatarSourceUrl: author.avatarUrl });
-    }
-    const matchingRange = saved?.totalStartDate === game.totalStartDate;
-    const iconUrl = game.iconUrl && game.iconUrl !== saved?.iconSourceUrl ? game.iconUrl : saved?.iconUrl ?? game.iconUrl ?? null;
-    return {
-      appId: game.appId, name: game.name, url: `https://www.taptap.cn/app/${game.appId}`, totalStartDate: game.totalStartDate,
-      iconUrl, iconSourceUrl: game.iconUrl ?? saved?.iconSourceUrl ?? null,
-      media: cleanMedia([...(iconUrl ? [{ kind: 'logo', url: iconUrl }] : []), ...(saved?.media ?? []).filter(item => item.kind === 'screenshot')]),
-      authorIds: bound.length ? bound.map(author => author.id) : saved?.authorMode === 'manual' ? [] : saved?.authorIds ?? [],
-      authorMode: bound.length ? 'manual' : 'auto',
-      status: saved?.status ?? 'pending', asOf: saved?.asOf ?? null, monthStart: saved?.monthStart ?? null,
-      updatedAt: saved?.updatedAt ?? null,
-      revenue: { yesterday: saved?.revenue?.yesterday ?? null, month: saved?.revenue?.month ?? null, total: matchingRange ? saved?.revenue?.total ?? null : null },
-      history: matchingRange ? saved?.history ?? [] : []
-    };
-  });
-  const used = new Set(games.flatMap(game => game.authorIds));
-  return {
-    games,
-    authors: [...profiles.values()].filter(author => used.has(author.id)).map(({ id, name, avatarUrl, avatarSourceUrl, tapUrl }) => ({ id, name, avatarUrl, avatarSourceUrl, tapUrl }))
-  };
-}
-
 function cleanSnapshot(input) {
   if (!(input.schemaVersion === 1 && Array.isArray(input.games) || input.schemaVersion === 2 && Array.isArray(input.boards)) || !Number.isFinite(Date.parse(input.generatedAt)) || !validDate(input.asOf) || !validDate(input.monthStart)) throw new Error('快照格式无效。');
   const boards = validateBoards(boardsOf(input)).map(board => ({ ...boardInfo(board), ...cleanBoard(board, input.asOf) }));
@@ -82,14 +43,15 @@ function cleanBoard(input, asOf) {
       appId: base.appId, name: base.name, url: `https://www.taptap.cn/app/${base.appId}`, totalStartDate: base.totalStartDate,
       iconUrl: mediaUrl(game.iconUrl), iconSourceUrl: imageUrl(game.iconSourceUrl), media: cleanMedia(game.media), authorIds: (game.authorIds ?? []).filter(id => /^[\w-]{1,64}$/.test(id)),
       authorMode: game.authorMode === 'manual' ? 'manual' : 'auto',
-      status: ['ok', 'stale', 'unavailable'].includes(game.status) ? game.status : 'unavailable',
+      status: ['ok', 'stale', 'unavailable', 'pending'].includes(game.status) ? game.status : 'unavailable',
       asOf: validDate(game.asOf) ? game.asOf : null, monthStart: validDate(game.monthStart) ? game.monthStart : null,
       updatedAt: Number.isFinite(Date.parse(game.updatedAt)) ? game.updatedAt : null,
+      ...(Number.isFinite(Date.parse(game.lastAttemptAt)) ? { lastAttemptAt: game.lastAttemptAt } : {}),
       revenue: { yesterday: amount(game.revenue?.yesterday), month: amount(game.revenue?.month), total: amount(game.revenue?.total) }, history
     };
   });
   const originals = input.authors ?? [];
-  if (!Array.isArray(originals) || originals.length > 300) throw new Error('作者列表过大。');
+  if (!Array.isArray(originals) || originals.length > 1000) throw new Error('作者列表过大。');
   const authors = normalizeAuthors(originals.map(author => ({ ...author, avatarUrl: null, qq: '', gameIds: [] }))).map(({ id, name, tapUrl }, index) => ({ id, name, avatarUrl: mediaUrl(originals[index].avatarUrl), avatarSourceUrl: imageUrl(originals[index].avatarSourceUrl), tapUrl }));
   return { games, authors };
 }

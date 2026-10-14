@@ -6,24 +6,52 @@ import { remoteConfig } from './sync.mjs';
 import { configSource } from '../shared/config.mjs';
 import { normalizeConfig } from '../shared/catalog.mjs';
 import { boardsOf, boardInfo } from '../shared/boards.mjs';
+import { publicRanking } from '../shared/snapshot.mjs';
 
 function mediaUrls(board) {
   return [...board.games.flatMap(game => [game.iconUrl, ...(game.media ?? []).map(item => item.url)]), ...(board.authors ?? []).map(author => author.avatarUrl)];
 }
 
-export async function collect({ env, config, client, catalogBuilder = buildCatalog, now = new Date(), outputFile = path.join(ROOT, 'site/data/ranking.json') } = {}) {
+function selectBatch(config, oldBoards, dates, size, force) {
+  const selected = new Set();
+  const todayStart = Date.parse(`${dates.today}T00:00:00+08:00`);
+  for (const board of config.boards) {
+    const oldRows = new Map((oldBoards.get(board.id)?.games ?? []).map(game => [game.appId, game]));
+    const attemptedAt = game => Date.parse(oldRows.get(game.appId)?.lastAttemptAt ?? oldRows.get(game.appId)?.updatedAt) || 0;
+    const due = board.games.filter(game => {
+      const old = oldRows.get(game.appId);
+      if (force || old?.totalStartDate !== game.totalStartDate) return true;
+      if (old?.status === 'ok' && old.asOf === dates.asOf) return false;
+      return attemptedAt(game) < todayStart;
+    }).sort((a, b) => attemptedAt(a) - attemptedAt(b));
+    for (const game of due) {
+      if (selected.size === size) return selected;
+      selected.add(`${board.id}:${game.appId}`);
+    }
+  }
+  return selected;
+}
+
+export async function collect({ env, config, client, catalogBuilder = buildCatalog, now = new Date(), outputFile = path.join(ROOT, 'site/data/ranking.json'), force = false } = {}) {
   env ??= await loadEnv();
+  const batchSize = Number(env.TAPMONEY_BATCH_SIZE ?? 40);
+  if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 500) throw new Error('TAPMONEY_BATCH_SIZE 必须是 1–500 的整数。');
   config = normalizeConfig(config ?? await (configSource(env) === 'cloud' ? remoteConfig(env) : loadConfig()));
-  client ??= new TapTapClient(env);
-  const developerId = validId(env.TAPTAP_DEVELOPER_ID, 'TAPTAP_DEVELOPER_ID');
-  // 身份失效时保留上一次完整快照。
-  await client.get('/api/user/v1/me');
   const previous = await readJson(outputFile, { games: [] });
   const oldBoards = new Map(boardsOf(previous).map(board => [board.id, board]));
-  const retainMedia = boardsOf(previous).flatMap(mediaUrls);
   const dates = periods(now);
+  const selected = selectBatch(config, oldBoards, dates, batchSize, force);
+  let developerId;
+  if (selected.size) {
+    client ??= new TapTapClient(env);
+    developerId = validId(env.TAPTAP_DEVELOPER_ID, 'TAPTAP_DEVELOPER_ID');
+    // 认证或限流失败时不覆盖上一份快照。
+    await client.get('/api/user/v1/me');
+  }
+  const retained = new Map(publicRanking(previous, config).boards.map(board => [board.id, board]));
+  const retainMedia = boardsOf(previous).flatMap(mediaUrls);
   const boards = [];
-  let succeeded = 0, gameCount = 0;
+  let succeeded = 0;
   // 仅共用上游报表请求；榜单配置、作者和失败回退互不共用。
   const reports = new Map();
   function query(method, ...args) {
@@ -32,13 +60,20 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
     return reports.get(key);
   }
   for (const board of config.boards) {
-    const oldRows = new Map((oldBoards.get(board.id)?.games ?? []).map(game => [game.appId, game]));
-    const catalog = await catalogBuilder(board.games, { now, retainMedia, authors: board.authors });
+    const kept = retained.get(board.id);
+    const oldRows = new Map(kept.games.map(game => [game.appId, game]));
+    const batch = board.games.filter(game => selected.has(`${board.id}:${game.appId}`));
+    // 未轮到的游戏不请求资料页、收益接口或下载图片。
+    const catalog = batch.length ? await catalogBuilder(batch, { now, retainMedia, authors: board.authors }) : { games: {}, authors: [] };
     retainMedia.push(...mediaUrls({ games: Object.values(catalog.games), authors: catalog.authors }));
+    const profiles = new Map([...kept.authors, ...catalog.authors].map(author => [author.id, author]));
     const rows = [];
     for (const game of board.games) {
-      gameCount++;
       const old = oldRows.get(game.appId);
+      if (!selected.has(`${board.id}:${game.appId}`)) {
+        rows.push({ ...old, status: old.updatedAt && old.asOf !== dates.asOf ? 'stale' : old.status });
+        continue;
+      }
       const metadata = catalog.games[game.appId];
       const base = {
         appId: game.appId, name: game.name, url: `https://www.taptap.cn/app/${game.appId}`,
@@ -46,7 +81,8 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
         iconUrl: metadata?.iconUrl ?? old?.iconUrl ?? null,
         iconSourceUrl: metadata?.iconSourceUrl ?? old?.iconSourceUrl ?? null,
         media: metadata?.media ?? old?.media ?? [],
-        authorIds: metadata?.authorIds ?? [], authorMode: metadata?.authorMode ?? 'auto'
+        authorIds: metadata?.authorIds ?? old?.authorIds ?? [], authorMode: metadata?.authorMode ?? old?.authorMode ?? 'auto',
+        lastAttemptAt: now.toISOString()
       };
       try {
         if (game.totalStartDate > dates.asOf) throw new Error('累计统计起始日期晚于昨日。');
@@ -64,31 +100,31 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
         console.log(`已采集 ${board.name} · ${game.name}（${game.appId}）。`);
       } catch (error) {
         if (error instanceof AuthenticationError || error instanceof RateLimitError) throw error;
-        const matchingTotalStart = old?.totalStartDate === game.totalStartDate;
         rows.push({
           ...base, status: old?.updatedAt ? 'stale' : 'unavailable',
           asOf: old?.asOf ?? null, monthStart: old?.monthStart ?? null, updatedAt: old?.updatedAt ?? null,
-          history: matchingTotalStart ? revenueHistory({ list: old?.history ?? [] }, game.totalStartDate, old?.asOf ?? dates.asOf) : [],
+          history: revenueHistory({ list: old?.history ?? [] }, game.totalStartDate, old?.asOf ?? dates.asOf),
           revenue: {
             yesterday: old?.revenue?.yesterday ?? null,
             month: old?.revenue?.month ?? null,
-            total: matchingTotalStart ? (old?.revenue?.total ?? null) : null
+            total: old?.revenue?.total ?? null
           }
         });
         console.error(`${board.name} · ${game.name}（${game.appId}）采集失败：${error.message} 保留该榜历史数据。`);
       }
     }
+    const used = new Set(rows.flatMap(game => game.authorIds));
     boards.push({ ...boardInfo(board), games: rows,
-      authors: catalog.authors.map(({ id, name, avatarUrl, avatarSourceUrl, tapUrl }) => ({ id, name, avatarUrl, avatarSourceUrl, tapUrl })) });
+      authors: [...profiles.values()].filter(author => used.has(author.id)).map(({ id, name, avatarUrl, avatarSourceUrl, tapUrl }) => ({ id, name, avatarUrl, avatarSourceUrl, tapUrl })) });
   }
-  if (!succeeded && gameCount) throw new Error('全部游戏采集失败，静态数据未更新，网站继续使用上一次快照。');
   const snapshot = {
-    schemaVersion: 2, generatedAt: now.toISOString(), asOf: dates.asOf, monthStart: dates.monthStart,
+    schemaVersion: 2, generatedAt: selected.size ? now.toISOString() : previous.generatedAt ?? now.toISOString(), asOf: dates.asOf, monthStart: dates.monthStart,
     timezone: 'Asia/Shanghai', currency: 'CNY', source: 'TapTap 小游戏广告收益报表', boards
   };
   await atomicWrite(outputFile, JSON.stringify(snapshot, null, 2) + '\n');
-  console.log(`已更新 ${boards.length} 个榜单：${succeeded}/${gameCount} 个游戏成功，统计截至 ${dates.asOf}。`);
+  const pending = boards.flatMap(board => board.games).filter(game => game.status === 'pending').length;
+  console.log(`已更新 ${boards.length} 个榜单：本批 ${succeeded}/${selected.size} 个游戏成功，待首次采集 ${pending} 个，统计截至 ${dates.asOf}。`);
   return snapshot;
 }
 
-if (isMain(import.meta.url)) collect().catch(printError);
+if (isMain(import.meta.url)) collect({ force: process.argv.includes('--force') }).catch(printError);

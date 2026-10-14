@@ -18,7 +18,7 @@ export function validDate(value) {
 }
 
 export function normalizeGames(list) {
-  if (!Array.isArray(list) || list.length > 200) throw new Error('游戏列表最多支持 200 款。');
+  if (!Array.isArray(list) || list.length > 500) throw new Error('游戏列表最多支持 500 款。');
   const ids = new Set();
   return list.map(item => {
     const appId = validId(item.appId, 'appId');

@@ -205,3 +205,22 @@ test('多榜快照上传清理各榜私有字段，删除热门榜游戏不影�
   const invalid = {...snapshot,boards:[snapshot.boards[0],{...snapshot.boards[1],slug:''}]};
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:invalid}),env)).status,400);
 });
+
+test('500 款游戏的批次快照可往返保存，待采集状态和尝试时间不丢失，自动作者可超过 300 位', async t => {
+  const {env}=await fixture(t);
+  const games=Array.from({length:500},(_,i)=>({...game,appId:String(i+1)}));
+  const config={boards:[{id:'home',name:'群友榜',slug:'',games:[],authors:[]},{id:'hot',name:'热门榜',slug:'hot',games,authors:[]}]};
+  assert.equal((await worker.fetch(request('/api/admin/config',{method:'PUT',body:{...config,revision:0}}),env)).status,200);
+  const at='2026-10-14T03:00:00.000Z';
+  const snapshot={schemaVersion:2,generatedAt:at,asOf:'2026-10-13',monthStart:'2026-10-01',boards:config.boards.map(b=>({...b,
+    games:b.games.map((g,i)=>({...g,authorIds:[`maker-${i}`],authorMode:'auto',status:i===0?'unavailable':'pending',...(i===0?{lastAttemptAt:at}:{}),revenue:{yesterday:null,month:null,total:null},history:[]})),
+    authors:b.games.map((g,i)=>({id:`maker-${i}`,name:`作者 ${i}`}))
+  }))};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:snapshot}),env)).status,200);
+  const saved=await (await worker.fetch(request('/api/ranking'),env)).json();
+  assert.equal(saved.boards[1].games.length,500);
+  assert.equal(saved.boards[1].authors.length,500);
+  assert.equal(saved.boards[1].games[0].lastAttemptAt,at);
+  assert.equal(saved.boards[1].games[1].status,'pending');
+  assert.equal(saved.boards[1].games[1].revenue.total,null);
+});
