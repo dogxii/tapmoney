@@ -2,6 +2,8 @@
 
 TapTap 小游戏广告收益榜。访客无需登录，点击列头排序、查看真实日报与累计曲线，在浏览器本地导出统计卡、榜单 PNG / CSV、游戏 Logo 和截图。
 
+[在线演示](https://tapmoney.pages.dev/) · [源码](https://github.com/dogxii/tapmoney)
+
 默认使用 **Cloudflare Pages + GitHub Actions + 仓库 JSON**，也支持可选的 Token 在线管理。Node.js 22.15 或更新版本。
 
 ## 本地启动
