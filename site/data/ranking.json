@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-14T07:01:55.135Z",
+  "generatedAt": "2026-10-14T07:03:52.557Z",
   "asOf": "2026-10-13",
   "monthStart": "2026-10-01",
   "timezone": "Asia/Shanghai",
@@ -46,7 +46,7 @@
       "status": "ok",
       "asOf": "2026-10-13",
       "monthStart": "2026-10-01",
-      "updatedAt": "2026-10-14T07:01:55.135Z",
+      "updatedAt": "2026-10-14T07:03:52.557Z",
       "revenue": {
         "yesterday": 396.05,
         "month": 6663.87,
