@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-14T07:03:52.557Z",
+  "generatedAt": "2026-10-14T08:07:13.512Z",
   "asOf": "2026-10-13",
   "monthStart": "2026-10-01",
   "timezone": "Asia/Shanghai",
@@ -46,7 +46,7 @@
       "status": "ok",
       "asOf": "2026-10-13",
       "monthStart": "2026-10-01",
-      "updatedAt": "2026-10-14T07:03:52.557Z",
+      "updatedAt": "2026-10-14T08:07:13.512Z",
       "revenue": {
         "yesterday": 396.05,
         "month": 6663.87,
@@ -94,15 +94,94 @@
           "revenue": 396.05
         }
       ]
+    },
+    {
+      "appId": "955186",
+      "name": "增量矿石弹球",
+      "url": "https://www.taptap.cn/app/955186",
+      "totalStartDate": "2026-01-01",
+      "iconUrl": "/media/aeebaacd34684a274315ccdd88d214b720186a940c6ef519386c114f4c010668.png",
+      "iconSourceUrl": "https://img-tc.tapimg.com/market/images/FsnNdznzP1wjuRC7pI0kv4adut2t.png/_tap_appicon.jpg",
+      "media": [
+        {
+          "kind": "logo",
+          "url": "/media/aeebaacd34684a274315ccdd88d214b720186a940c6ef519386c114f4c010668.png"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/b2384e6b19584e126c0480b6d2d2f3bd7ef87a291144c44822a78f6eb8279be9.jpg"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/96bb871151c6bf38bad9eb7638c4a4414367fdac97390530a267058681c62794.jpg"
+        },
+        {
+          "kind": "screenshot",
+          "url": "/media/3e051b3ec2b5789a5548ac6251710acd62d14752e1c2326c4ac1b77aaf62cede.jpg"
+        }
+      ],
+      "authorIds": [
+        "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01"
+      ],
+      "status": "ok",
+      "asOf": "2026-10-13",
+      "monthStart": "2026-10-01",
+      "updatedAt": "2026-10-14T08:07:13.512Z",
+      "revenue": {
+        "yesterday": 2.6,
+        "month": 74.56,
+        "total": 74.56
+      },
+      "history": [
+        {
+          "date": "2026-10-06",
+          "revenue": 0.35
+        },
+        {
+          "date": "2026-10-07",
+          "revenue": 3.29
+        },
+        {
+          "date": "2026-10-08",
+          "revenue": 20.83
+        },
+        {
+          "date": "2026-10-09",
+          "revenue": 20.59
+        },
+        {
+          "date": "2026-10-10",
+          "revenue": 15.95
+        },
+        {
+          "date": "2026-10-11",
+          "revenue": 6.76
+        },
+        {
+          "date": "2026-10-12",
+          "revenue": 4.19
+        },
+        {
+          "date": "2026-10-13",
+          "revenue": 2.6
+        }
+      ]
     }
   ],
   "authors": [
     {
       "id": "tap-649821456",
-      "name": "好想成为人类啊",
-      "avatarUrl": "/media/3c914cc7a749a7ec217fcc90281817df1d2a852fce08e5bcb2a651b0ad5adee1.jpg",
-      "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png/_tap_avatar.jpg",
+      "name": "咲夜",
+      "avatarUrl": "/media/a2217b7826572e802c974bf32551ee52e74aa600c0dc0cb40cd4a7cecb38cf94.jpg",
+      "avatarSourceUrl": "https://q1.qlogo.cn/g?b=qq&nk=347764670&s=100",
       "tapUrl": "https://www.taptap.cn/user/649821456"
+    },
+    {
+      "id": "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01",
+      "name": "豆腐脑",
+      "avatarUrl": "/media/a7a36a6ae3130622e6fa215fceb620e6dc2daeff852e353cde3855a582801665.jpg",
+      "avatarSourceUrl": "https://q1.qlogo.cn/g?b=qq&nk=394811161&s=100",
+      "tapUrl": "https://www.taptap.cn/user/58689469"
     }
   ]
 }
