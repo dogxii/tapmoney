@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-14T09:38:06.015Z",
+  "generatedAt": "2026-10-14T10:12:48.260Z",
   "asOf": "2026-10-13",
   "monthStart": "2026-10-01",
   "timezone": "Asia/Shanghai",
@@ -52,7 +52,7 @@
           "status": "ok",
           "asOf": "2026-10-13",
           "monthStart": "2026-10-01",
-          "updatedAt": "2026-10-14T09:38:06.015Z",
+          "updatedAt": "2026-10-14T10:12:48.260Z",
           "revenue": {
             "yesterday": 396.05,
             "month": 6663.87,
@@ -133,7 +133,7 @@
           "status": "ok",
           "asOf": "2026-10-13",
           "monthStart": "2026-10-01",
-          "updatedAt": "2026-10-14T09:38:06.015Z",
+          "updatedAt": "2026-10-14T10:12:48.260Z",
           "revenue": {
             "yesterday": 2.6,
             "month": 74.56,
@@ -179,7 +179,7 @@
         {
           "id": "tap-649821456",
           "name": "好想成为人类啊",
-          "avatarUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png",
+          "avatarUrl": "/media/8bdc5cbe66158e908e356743f7ae443f38231cef0890b3d78fc84affe9d7c8ce.png",
           "avatarSourceUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png",
           "tapUrl": "https://www.taptap.cn/user/649821456"
         },
