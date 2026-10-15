@@ -1,17 +1,7 @@
 name: Update ranking
 
 on:
-  schedule:
-    - cron: '30 * * * *'
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'config/**'
-      - 'scripts/**'
-      - 'shared/**'
-      - 'package*.json'
-      - '.github/workflows/collect.yml'
 
 permissions:
   contents: write
