@@ -8,13 +8,14 @@ import { normalizeConfig } from '../shared/catalog.mjs';
 import { boardsOf, boardInfo } from '../shared/boards.mjs';
 import { publicRanking } from '../shared/snapshot.mjs';
 
-function selectBatch(config, oldBoards, dates, size, force) {
+function selectBatch(config, oldBoards, dates, size, force, onlyGameIds) {
   const selected = new Set();
   const todayStart = Date.parse(`${dates.today}T00:00:00+08:00`);
   for (const board of config.boards) {
     const oldRows = new Map((oldBoards.get(board.id)?.games ?? []).map(game => [game.appId, game]));
     const attemptedAt = game => Date.parse(oldRows.get(game.appId)?.lastAttemptAt ?? oldRows.get(game.appId)?.updatedAt) || 0;
     const due = board.games.filter(game => {
+      if (onlyGameIds && !onlyGameIds.has(game.appId)) return false;
       const old = oldRows.get(game.appId);
       if (force || old?.totalStartDate !== game.totalStartDate) return true;
       if (old?.status === 'ok' && old.asOf === dates.asOf) return false;
@@ -42,7 +43,7 @@ async function concurrentMap(items, limit, run) {
   return results;
 }
 
-export async function collect({ env, config, client, catalogBuilder = buildCatalog, now = new Date(), outputFile = path.join(ROOT, 'site/data/ranking.json'), force = false } = {}) {
+export async function collect({ env, config, client, catalogBuilder = buildCatalog, now = new Date(), outputFile = path.join(ROOT, 'site/data/ranking.json'), force = false, onlyGameIds } = {}) {
   env ??= await loadEnv();
   const batchSize = Number(env.TAPMONEY_BATCH_SIZE ?? 40);
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 500) throw new Error('TAPMONEY_BATCH_SIZE 必须是 1–500 的整数。');
@@ -52,7 +53,8 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
   const previous = await readJson(outputFile, { games: [] });
   const oldBoards = new Map(boardsOf(previous).map(board => [board.id, board]));
   const dates = periods(now);
-  const selected = selectBatch(config, oldBoards, dates, batchSize, force);
+  const allowed = onlyGameIds ? new Set([...onlyGameIds].map(String)) : null;
+  const selected = selectBatch(config, oldBoards, dates, batchSize, force, allowed);
   let developerId;
   if (selected.size) {
     client ??= new TapTapClient(env);

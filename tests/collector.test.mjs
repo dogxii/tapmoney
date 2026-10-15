@@ -126,6 +126,18 @@ test('并发采集限制在途数量、保持配置顺序，单个失败不会�
   assert.equal(snapshot.boards[0].games[2].asOf,'2026-10-11');
 });
 
+test('限定游戏集合时只请求新增游戏，旧榜数据保持原样', async t => {
+  const outputFile = await fixture(t);
+  const games = [1, 2, 3].map(id => ({ ...game, appId: String(id) }));
+  await writeFile(outputFile, JSON.stringify({ games: [{ ...games[0], status: 'ok', asOf: '2026-10-14', updatedAt: '2026-10-15T00:00:00Z', revenue: { yesterday: 9, month: 10, total: 11 }, history: [] }, ...games.slice(1).map(item => ({ ...item, status: 'pending', revenue: { yesterday: null, month: null, total: null }, history: [] }))] }));
+  const requested = [];
+  const snapshot = await collect({ env, onlyGameIds: new Set(['2']), config: { games, authors: [] }, outputFile, now: new Date('2026-10-15T03:00:00Z'), catalogBuilder: async () => ({ games: {}, authors: [] }), client: { get: async () => ({}), revenue: async (developerId, appId) => { requested.push(appId); return 2; }, report: async (developerId, appId) => ({ total: 2, history: [] }) } });
+  assert.deepEqual(requested, ['2', '2']);
+  assert.equal(snapshot.boards[0].games[0].revenue.total, 11);
+  assert.equal(snapshot.boards[0].games[0].asOf, '2026-10-14');
+  assert.equal(snapshot.boards[0].games[1].status, 'ok');
+});
+
 test('并发发生限流时等待在途任务退出、不派发后续游戏、不写入部分快照', async t => {
   const outputFile=await fixture(t), previous=JSON.stringify({games:[]});
   await writeFile(outputFile,previous);
