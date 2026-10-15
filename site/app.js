@@ -48,13 +48,9 @@ function render(resetPage = true) {
   if (!snapshot) return;
   if (resetPage) page = 0;
   const search = document.querySelector('#search').value.trim().toLocaleLowerCase();
-  const selectedAuthor = authorView ? '' : document.querySelector('#author-select').value;
   const cacheKey = `${authorView}:${metric}`;
   if (!rankings.has(cacheKey)) rankings.set(cacheKey, rankingRows(authorView ? snapshot.authors : snapshot.games, metric, snapshot));
-  visibleRows = rankings.get(cacheKey).filter(({game}) => {
-    const ids = game.authorIds ?? [];
-    return (!selectedAuthor || ids.includes(selectedAuthor)) && (searchTerms.get(`${authorView ? 'author' : 'game'}:${game.appId ?? game.id}`) ?? '').includes(search);
-  });
+  visibleRows = rankings.get(cacheKey).filter(({game}) => (searchTerms.get(`${authorView ? 'author' : 'game'}:${game.appId ?? game.id}`) ?? '').includes(search));
   const visible = visibleRows.map(row => row.game);
   const tbody = document.querySelector('#games');
   tbody.replaceChildren();
@@ -64,7 +60,6 @@ function render(resetPage = true) {
   document.querySelectorAll('th.author-column').forEach(cell => { cell.hidden = !authorView && profiles.size === 0; });
   document.querySelector('th.game-column').textContent = authorView ? '作者' : '游戏';
   document.querySelector('th.author-column').textContent = authorView ? '游戏数' : '作者';
-  document.querySelector('#author-filter').hidden = authorView || profiles.size < 2;
   document.querySelector('#aggregate-group').hidden = authorView;
   document.querySelector('#author-note').hidden = !authorView;
   document.querySelector('.ranking').setAttribute('aria-label', authorView ? '作者作品收益排行' : '游戏收益排行');
@@ -155,15 +150,13 @@ function notice(message, error = false) {
 
 let searchTimer;
 document.querySelector('#search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => render(), 100); });
-document.querySelector('#author-select').addEventListener('change', () => render());
 for (const [id, step] of [['page-prev', -1], ['page-next', 1]]) document.querySelector(`#${id}`).addEventListener('click', () => {
   page += step; render(false); document.querySelector('.ranking').scrollIntoView({block: 'start'});
 });
 document.querySelector('#export-ranking').addEventListener('click', async () => {
   if (!snapshot) return;
   const search = document.querySelector('#search').value.trim();
-  const author = profiles.get(document.querySelector('#author-select').value)?.name;
-  const options = { rows: visibleRows, snapshot, metric, profiles, authorView, filter: [search, authorView ? '' : author].filter(Boolean).join(' · ') };
+  const options = { rows: visibleRows, snapshot, metric, profiles, authorView, filter: search };
   const { showRankingExport } = await import('./export.js');
   showRankingExport(options);
 });
@@ -213,13 +206,6 @@ async function load(refresh = false) {
     for (const game of snapshot.games) searchTerms.set(`game:${game.appId}`, `${game.name} ${game.appId} ${(game.authorIds ?? []).map(id => profiles.get(id)?.name ?? '').join(' ')}`.toLocaleLowerCase());
     const gameNames = new Map(snapshot.games.map(game => [game.appId,game.name]));
     for (const author of snapshot.authors) searchTerms.set(`author:${author.id}`, `${author.name} ${author.id} ${author.gameIds.map(id => gameNames.get(id) ?? '').join(' ')}`.toLocaleLowerCase());
-    const select = document.querySelector('#author-select');
-    const selection = select.value;
-    select.replaceChildren(node('option', '', '全部作者'));
-    select.firstElementChild.value = '';
-    for (const author of profiles.values()) { const option = node('option', '', author.name); option.value = author.id; select.append(option); }
-    select.value = profiles.has(selection) ? selection : '';
-    document.querySelector('#author-filter').hidden = profiles.size < 2;
     const updated = document.querySelector('#updated-at');
     const freshness = document.querySelector('#freshness');
     notice(''); freshness.className = 'status-dot';

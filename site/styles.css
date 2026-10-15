@@ -57,9 +57,6 @@ h1 { font-size: 24px; font-weight: 600; letter-spacing: -.7px; margin: 0; }
 .search input { width: 100%; min-width: 0; border: 0; outline: none; background: transparent; color: var(--ink); font-size: 12px; }
 .search input::placeholder { color: var(--muted); }
 .search:focus-within { border-color: var(--focus); }
-.author-filter { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-.author-filter .icon { width: 14px; height: 14px; }
-.author-filter select { border: 0; background: var(--bg); color: var(--muted); font-size: 12px; max-width: 120px; padding: 5px 0; cursor: pointer; }
 .table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
 table { border-collapse: collapse; width: 100%; text-align: left; white-space: nowrap; }
 thead { background: var(--surface-subtle); }
@@ -244,7 +241,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   .tools { gap: 4px; }
   .search { flex: 1; width: auto; height: 32px; padding: 7px; }
   .tools > .icon-button { width: 27px; }
-  .author-filter select { font-size: 11px; }
   .author-column { display: none; }
   .mobile-authors { display: flex; gap: 7px; flex-wrap: wrap; max-width: 150px; }
   .mobile-authors .row-author { font-size: 10px; gap: 5px; max-width: 165px; }
@@ -292,7 +288,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   .chart-ranges button { padding: 5px 6px; }
   .detail-footer { padding-top: 15px; }
 }
-@media(max-width: 640px) { .heading-tools .author-filter { display: none; } }
 @media(max-width: 370px) {
   .shell { padding: 0 12px; }
   h1 { font-size: 20px; }

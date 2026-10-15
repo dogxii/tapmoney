@@ -79,7 +79,7 @@ async function readBody(request, limit = 1024 * 1024) {
 
 async function document(db, key) {
   // 小文档和旧版分片一次读取；大文档按清单中的固定版本分批读取。
-  const { results } = await db.prepare('SELECT key, body, revision FROM documents WHERE key = ? OR key GLOB ?').bind(key, `${key}:*`).all();
+  const { results } = await db.prepare('SELECT key, body, revision FROM documents WHERE key = ? OR (key >= ? AND key < ?)').bind(key, `${key}:`, `${key};`).all();
   const row = results.find(row => row.key === key);
   if (!row) return null;
   return { ...await readDocumentValue(db, row, results), revision: row.revision };
@@ -136,7 +136,7 @@ async function saveDocument(db, key, snapshot) {
   const now = new Date().toISOString();
   const previous = await db.prepare('SELECT body FROM documents WHERE key = ?').bind(key).first();
   const oldPrefix = previous ? JSON.parse(previous.body).prefix : null;
-  const statements = [db.prepare('DELETE FROM documents WHERE key GLOB ?').bind(`${key}:*`)];
+  const statements = [db.prepare('DELETE FROM documents WHERE key >= ? AND key < ?').bind(`${key}:`, `${key};`)];
   let body = text, prefix;
   if (text.length > size) {
     const parts = [];
@@ -149,7 +149,7 @@ async function saveDocument(db, key, snapshot) {
         try {
           await db.batch(parts.slice(start, start + 4).map((part, offset) => db.prepare('INSERT INTO documents (key, body, updated_at) VALUES (?, ?, ?)').bind(`${prefix}:${start + offset}`, JSON.stringify(part), now)));
         } catch (error) {
-          await db.prepare('DELETE FROM documents WHERE key GLOB ?').bind(`${prefix}:*`).run().catch(() => {});
+          await db.prepare('DELETE FROM documents WHERE key >= ? AND key < ?').bind(`${prefix}:`, `${prefix};`).run().catch(() => {});
           throw error;
         }
       }
@@ -161,11 +161,11 @@ async function saveDocument(db, key, snapshot) {
   }
   statements.push(db.prepare('INSERT INTO documents (key, body, revision, updated_at) VALUES (?, ?, 1, ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, revision = documents.revision + 1, updated_at = excluded.updated_at').bind(key, body, now));
   // 旧版本保留两分钟，让已读取旧清单的请求有时间读完全部分片。
-  if (oldPrefix) statements.push(db.prepare('UPDATE documents SET updated_at = ? WHERE key GLOB ?').bind(now, `${oldPrefix}:*`));
-  statements.push(db.prepare('DELETE FROM documents WHERE key GLOB ? AND updated_at < ? AND key NOT GLOB ?').bind(`parts:${key}:*`, new Date(Date.now() - 120000).toISOString(), `${prefix ?? key}:*`));
+  if (oldPrefix) statements.push(db.prepare('UPDATE documents SET updated_at = ? WHERE key >= ? AND key < ?').bind(now, `${oldPrefix}:`, `${oldPrefix};`));
+  statements.push(db.prepare('DELETE FROM documents WHERE key >= ? AND key < ? AND updated_at < ? AND (key < ? OR key >= ?)').bind(`parts:${key}:`, `parts:${key};`, new Date(Date.now() - 120000).toISOString(), `${prefix ?? key}:`, `${prefix ?? key};`));
   try { await db.batch(statements); }
   catch (error) {
-    if (prefix) await db.prepare("DELETE FROM documents WHERE key GLOB ? AND (SELECT json_extract(body, '$.prefix') FROM documents WHERE key = ?) IS NOT ?").bind(`${prefix}:*`, key, prefix).run().catch(() => {});
+    if (prefix) await db.prepare("DELETE FROM documents WHERE key >= ? AND key < ? AND (SELECT json_extract(body, '$.prefix') FROM documents WHERE key = ?) IS NOT ?").bind(`${prefix}:`, `${prefix};`, key, prefix).run().catch(() => {});
     throw error;
   }
 }
@@ -207,11 +207,11 @@ async function snapshotUpload(request, env, url) {
   }
   // 只在 SQLite 中统计记录与身份，不把整份历史取回 Worker 校验。
   for (const board of manifest.boards) {
-    const pattern = `${prefix}:${board.id}:*`;
-    const parts = await env.DB.prepare('SELECT count(*) AS count FROM documents WHERE key GLOB ?').bind(pattern).first();
+    const from = `${prefix}:${board.id}:`, to = `${prefix}:${board.id};`;
+    const parts = await env.DB.prepare('SELECT count(*) AS count FROM documents WHERE key >= ? AND key < ?').bind(from, to).first();
     if (parts.count !== board.parts) return json({ error: '上传尚未完成，旧快照继续生效。' }, 409);
     for (const [field, id, expected] of [['games', 'appId', board.gameCount], ['authors', 'id', board.authorCount]]) {
-      const counts = await env.DB.prepare(`SELECT count(*) AS count, count(DISTINCT json_extract(item.value, '$.${id}')) AS uniqueCount FROM documents, json_each(documents.body, '$.${field}') AS item WHERE documents.key GLOB ?`).bind(pattern).first();
+      const counts = await env.DB.prepare(`SELECT count(*) AS count, count(DISTINCT json_extract(item.value, '$.${id}')) AS uniqueCount FROM documents, json_each(documents.body, '$.${field}') AS item WHERE documents.key >= ? AND documents.key < ?`).bind(from, to).first();
       if (counts.count !== expected || counts.uniqueCount !== expected) return json({ error: '上传记录缺失或身份重复。' }, 400);
     }
   }
@@ -219,10 +219,10 @@ async function snapshotUpload(request, env, url) {
   const oldPrefix = previous ? JSON.parse(previous.body).prefix : null, now = new Date().toISOString();
   const statements = [
     env.DB.prepare("INSERT INTO documents (key, body, revision, updated_at) SELECT 'snapshot', ?, 1, ? WHERE EXISTS (SELECT 1 FROM documents WHERE key = ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, revision = documents.revision + 1, updated_at = excluded.updated_at WHERE documents.revision = ?").bind(JSON.stringify(manifest), now, `${prefix}:upload`, manifest.baseRevision),
-    env.DB.prepare("DELETE FROM documents WHERE key GLOB 'snapshot:*' OR key = ?").bind(`${prefix}:upload`)
+    env.DB.prepare("DELETE FROM documents WHERE (key >= 'snapshot:' AND key < 'snapshot;') OR key = ?").bind(`${prefix}:upload`)
   ];
-  if (oldPrefix) statements.push(env.DB.prepare('UPDATE documents SET updated_at = ? WHERE key GLOB ?').bind(now, `${oldPrefix}:*`));
-  statements.push(env.DB.prepare("DELETE FROM documents WHERE key GLOB 'parts:snapshot:*' AND updated_at < ? AND key NOT GLOB ?").bind(new Date(Date.now() - 1800000).toISOString(), `${prefix}:*`));
+  if (oldPrefix) statements.push(env.DB.prepare('UPDATE documents SET updated_at = ? WHERE key >= ? AND key < ?').bind(now, `${oldPrefix}:`, `${oldPrefix};`));
+  statements.push(env.DB.prepare("DELETE FROM documents WHERE key >= 'parts:snapshot:' AND key < 'parts:snapshot;' AND updated_at < ? AND (key < ? OR key >= ?)").bind(new Date(Date.now() - 1800000).toISOString(), `${prefix}:`, `${prefix};`));
   const result = await env.DB.batch(statements);
   if (result[0].meta.changes !== 1) return json({ error: '快照已更新，请重新同步当前数据。' }, 409);
   return json({ ok: true });
@@ -243,7 +243,7 @@ async function publicData(env, request) {
 
 async function projectedData(env, request, key, select, context) {
   // 版本号和摘要在一次查询中读取；命中后不读取整份收益历史。
-  const { results } = await env.DB.prepare("SELECT key, CASE WHEN key IN ('config', 'snapshot') THEN NULL ELSE body END AS body, revision FROM documents WHERE key IN ('config', 'snapshot', ?) OR key GLOB ?").bind(key, `${key}:*`).all();
+  const { results } = await env.DB.prepare("SELECT key, CASE WHEN key IN ('config', 'snapshot') THEN NULL ELSE body END AS body, revision FROM documents WHERE key IN ('config', 'snapshot', ?) OR (key >= ? AND key < ?)").bind(key, `${key}:`, `${key};`).all();
   const version = ['config', 'snapshot'].map(key => results.find(row => row.key === key)?.revision ?? 0).join(':');
   const root = results.find(row => row.key === key);
   if (root) {

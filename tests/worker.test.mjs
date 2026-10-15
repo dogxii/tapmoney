@@ -27,12 +27,15 @@ async function fixture(t) {
     catch (error) { sqlite.exec('ROLLBACK'); throw error; }
   }, prepare(sql) {
     const statement = sqlite.prepare(sql);
-    const bound = values => ({ parameters: values, first: async () => statement.get(...values), all: async () => {
+    const bound = values => {
+      if (/\b(?:GLOB|LIKE)\b/.test(sql) && values.some(value => typeof value === 'string' && value.length > 50)) throw new Error('D1 LIKE/GLOB 模式超长。');
+      return { parameters: values, first: async () => statement.get(...values), all: async () => {
       const results = statement.all(...values); checkRpc(results); return {results};
     }, run: async () => {
       if (values.some(value => typeof value === 'string' && Buffer.byteLength(value) > 2000000)) throw new Error('D1 单值容量超限。');
       return { meta: statement.run(...values) };
-    } });
+    } };
+    };
     return { ...bound([]), bind(...values) { return bound(values); } };
   } };
   const env = { DB, ADMIN_TOKEN_HASH: await tokenHash(token), ASSETS: { fetch: async () => new Response(JSON.stringify({ schemaVersion: 1, games: [], authors: [] })) } };
