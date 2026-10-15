@@ -258,7 +258,7 @@ test('部分采集成功后遇限流也停止后续游戏，完整保留上次�
   assert.equal(await readFile(outputFile, 'utf8'), previous);
 });
 
-test('多榜采集仅复用相同工作室、游戏和日期的报表，作者和累计区间保持独立', async t => {
+test('多榜采集仅复用相同工作室、游戏和日期的报表，官方制作人跨榜一致，累计区间保持独立', async t => {
   const outputFile = await fixture(t);
   const author = name => ({ id: 'maker', name, gameIds: [game.appId] });
   const config = { boards: [
@@ -268,8 +268,8 @@ test('多榜采集仅复用相同工作室、游戏和日期的报表，作者�
     { id: 'studio', slug: 'studio', name: '其他工作室', games: [{ ...game, queryDeveloperId: '123' }], authors: [] }
   ] };
   const calls = [];
-  const snapshot = await collect({ env, config, outputFile, now: new Date('2026-10-14T03:00:00Z'), catalogBuilder: async (games, {authors}) => {
-    return { games: { [game.appId]: { iconUrl: `https://example.com/${authors[0]?.name}.png`, authorIds: authors.map(a=>a.id), authorMode: 'manual' } }, authors };
+  const snapshot = await collect({ env, config, outputFile, now: new Date('2026-10-14T03:00:00Z'), catalogBuilder: async () => {
+    return { games: { [game.appId]: { name:'官方名称', iconUrl:'https://example.com/logo.png', authorIds:['tap-1'], authorMode:'auto' } }, authors:[{id:'tap-1',name:'官方作者',tapUrl:'https://www.taptap.cn/user/1'}] };
   }, client: {
     get: async () => ({}),
     revenue: async (...args) => { calls.push(['revenue', ...args]); return 1; },
@@ -277,8 +277,8 @@ test('多榜采集仅复用相同工作室、游戏和日期的报表，作者�
   } });
   assert.equal(calls.length, 7); // 同工作室共 2 个期间收益 + 2 个累计区间；另一工作室 3 次。
   assert.deepEqual(snapshot.boards.map(b=>b.games[0].revenue.total), [20,20,8,20]);
-  assert.equal(snapshot.boards[0].authors[0].name, '群友');
-  assert.equal(snapshot.boards[1].authors[0].name, '热门');
+  assert.equal(snapshot.boards[0].authors[0].name, '官方作者');
+  assert.equal(snapshot.boards[1].authors[0].name, '官方作者');
   assert.ok(!JSON.stringify(snapshot).includes('gameIds'));
   assert.ok(!JSON.stringify(snapshot).includes('queryDeveloperId'));
 });

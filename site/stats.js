@@ -60,24 +60,31 @@ function drawChart(container, rows, mode) {
   });
 }
 
-export function showGameDetails(game, snapshot, profiles) {
+let disconnectChart;
+export function showGameDetails(game, snapshot, profiles) { showDetails(game, snapshot, profiles); }
+export function showAuthorDetails(data, snapshot, profiles, openGame) { showDetails(data.author, snapshot, profiles, { games: data.games, openGame }); }
+
+function showDetails(game, snapshot, profiles, options) {
+  disconnectChart?.();
+  const isAuthor = Boolean(options);
   const dialog = document.querySelector('#game-detail');
   dialog.setAttribute('aria-label', `${game.name}统计`);
   dialog.replaceChildren();
   const header = node('div', 'dialog-header');
   const title = node('div', 'detail-title');
-  title.append(portrait(game.iconUrl, game.name, 'game-logo'));
+  title.append(portrait(isAuthor ? game.avatarUrl : game.iconUrl, game.name, isAuthor ? 'avatar author-portrait' : 'game-logo'));
   const text = node('div', 'detail-heading'); text.append(node('h2', '', game.name));
   const authors = node('div', 'authors-inline');
   (game.authorIds ?? []).forEach(id => { if (profiles.has(id)) authors.append(authorLink(profiles.get(id))); });
+  if (isAuthor) authors.append(node('span', 'value-missing', `${game.gameCount} 款作品`));
   text.append(authors); title.append(text); header.append(title);
   const actions = node('div', 'dialog-actions');
   let mode = 'daily', days = 30;
-  const download = iconButton('download', '导出游戏');
-  download.addEventListener('click', async () => { const { showGameExport } = await import('./export.js'); showGameExport({game, snapshot, profiles, mode, days}); });
+  const download = iconButton('download', isAuthor ? '导出作者统计' : '导出游戏');
+  download.addEventListener('click', async () => { const exports = await import('./export.js'); exports[isAuthor ? 'showAuthorExport' : 'showGameExport']({game, snapshot, profiles, mode, days}); });
   const tap = iconButton('external', '在 TapTap 查看');
-  tap.addEventListener('click', () => window.open(`https://www.taptap.cn/app/${game.appId}`, '_blank', 'noopener,noreferrer'));
-  const close = iconButton('close', '关闭游戏统计'); close.addEventListener('click', () => dialog.close());
+  tap.addEventListener('click', () => window.open(isAuthor ? game.tapUrl : `https://www.taptap.cn/app/${game.appId}`, '_blank', 'noopener,noreferrer'));
+  const close = iconButton('close', isAuthor ? '关闭作者统计' : '关闭游戏统计'); close.addEventListener('click', () => dialog.close());
   actions.append(download, tap, close); header.append(actions);
   const summary = node('div', 'detail-metrics');
   const history = game.history ?? [];
@@ -87,6 +94,7 @@ export function showGameDetails(game, snapshot, profiles) {
     card.append(node('strong', '', typeof amount === 'number' ? money.format(amount) : '—'));
     const growth = periodGrowth(game, key, snapshot);
     if (growth !== null) card.append(node('small', growth > 0 ? 'positive' : growth < 0 ? 'negative' : '', `${growth > 0 ? '+' : ''}${growth.toFixed(1)}% ${key === 'month' ? '较上月同期' : '较前日'}`));
+    if (isAuthor && amount === null) card.append(node('small', '', `${game.metricCounts[key]}/${game.gameCount} 款有数据`));
     summary.append(card);
   }
   const toolbar = node('div', 'chart-toolbar');
@@ -107,15 +115,29 @@ export function showGameDetails(game, snapshot, profiles) {
   toolbar.append(modes, ranges);
   const footer = node('div', 'detail-footer');
   footer.append(node('span', '', '广告收益 · CNY'), node('span', '', game.asOf ? `截至 ${game.asOf}` : '待采集'));
-  dialog.append(header, summary, toolbar, chart, footer);
-  dialog.showModal(); draw();
+  dialog.append(header, summary);
+  if (isAuthor) dialog.append(node('p', 'scope-note', '本榜已收录作品广告收益 · 合作作品分别计入各作者；曲线仅展示各作品日报齐全的日期。'));
+  dialog.append(toolbar, chart, footer);
+  if (isAuthor) {
+    const works = node('div', 'author-works'); works.append(node('h3', '', '本榜作品'));
+    for (const work of options.games) {
+      const button = node('button', 'author-work'); button.type = 'button';
+      const label = node('span', 'game-cell'); label.append(portrait(work.iconUrl, work.name, 'game-logo'), node('span', '', work.name));
+      const amount = metricValue(work, 'total', snapshot);
+      button.append(label, node('span', 'numeric', amount === null ? '—' : money.format(amount)));
+      button.title = `${work.name} · 累计广告收益`; button.addEventListener('click', () => options.openGame(work)); works.append(button);
+    }
+    dialog.append(works);
+  }
+  if (!dialog.open) dialog.showModal(); draw();
   let lastWidth = Math.round(chart.clientWidth);
   const observer = new ResizeObserver(entries => {
     const width = Math.round(entries[0].contentRect.width);
     if (width && width !== lastWidth) { lastWidth = width; draw(); }
   });
   observer.observe(chart);
-  dialog.addEventListener('close', () => observer.disconnect(), { once: true });
+  disconnectChart = () => observer.disconnect();
+  dialog.addEventListener('close', disconnectChart, { once: true });
 }
 
 document.querySelector('#game-detail').addEventListener('click', event => {

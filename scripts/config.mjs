@@ -6,6 +6,6 @@ export async function loadConfig() {
   const saved = await readJson(path.join(ROOT, 'config/boards.json'));
   return normalizeConfig(saved ?? {
     games: await readJson(path.join(ROOT, 'config/games.json'), []),
-    authors: await readJson(path.join(ROOT, 'config/authors.json'), [])
+    authors: []
   });
 }

@@ -1,24 +1,17 @@
-import { imageUrl, validId, normalizeGames } from './config.mjs';
+import { imageUrl, normalizeGames } from './config.mjs';
 import { boardsOf, boardInfo, validateBoards } from './boards.mjs';
 export { imageUrl } from './config.mjs';
 
 export function normalizeConfig(input) {
-  if (!input || typeof input !== 'object' || input.boards === undefined && (!Array.isArray(input.games) || !Array.isArray(input.authors))) throw new Error('缺少榜单配置。');
+  if (!input || typeof input !== 'object' || input.boards === undefined && !Array.isArray(input.games)) throw new Error('缺少榜单配置。');
   const boards = validateBoards(input.boards === undefined ? boardsOf(input) : input.boards);
   return { boards: boards.map(board => ({ ...boardInfo(board), ...normalizeCatalog(board) })) };
 }
 
 function normalizeCatalog(input) {
   const games = normalizeGames(input.games);
-  if (!Array.isArray(input.authors) || input.authors.length > 300) throw new Error('作者列表最多支持 300 位。');
-  const authors = normalizeAuthors(input.authors).map((author, index) => {
-    const qq = String(input.authors[index].qq ?? '').trim();
-    const avatarUrl = imageUrl(input.authors[index].avatarUrl);
-    return { ...author, qq, avatarUrl: qq && avatarUrl === qqAvatarUrl(qq) ? null : avatarUrl };
-  });
-  const gameIds = new Set(games.map(game => game.appId));
-  if (authors.some(author => author.gameIds.some(id => !gameIds.has(id)))) throw new Error('作者只能绑定已添加的游戏。');
-  return { games, authors };
+  // 旧配置中的手动资料不再覆盖 TapTap 官方身份及作品归属。
+  return { games, authors: [] };
 }
 
 export function tapProfileUrl(value) {
@@ -29,9 +22,10 @@ export function tapProfileUrl(value) {
   } catch { return null; }
 }
 
-export function qqAvatarUrl(qq) {
-  if (!/^[1-9]\d{4,11}$/.test(String(qq))) throw new Error('QQ 号需要填写 5–12 位数字。');
-  return `https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=100`;
+export function profileId(value) {
+  const url = tapProfileUrl(value);
+  if (!url) return null;
+  return `${url.includes('/user/') ? 'tap' : 'studio'}-${url.split('/').at(-1)}`;
 }
 
 export function normalizeAuthors(list) {
@@ -41,14 +35,11 @@ export function normalizeAuthors(list) {
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(item.id ?? '') || ids.has(item.id)) throw new Error('作者 id 需要唯一，只能包含字母、数字、下划线或短横线。');
     ids.add(item.id);
     if (typeof item.name !== 'string' || !item.name.trim()) throw new Error(`作者 ${item.id} 缺少昵称。`);
-    const qq = String(item.qq ?? '').trim();
-    const fallback = qq ? qqAvatarUrl(qq) : null;
-    const avatarUrl = imageUrl(item.avatarUrl) ?? fallback;
+    const avatarUrl = imageUrl(item.avatarUrl);
     if (item.avatarUrl && !imageUrl(item.avatarUrl)) throw new Error(`作者 ${item.id} 的头像必须是 HTTPS 图片链接。`);
     const tapUrl = item.tapUrl ? tapProfileUrl(item.tapUrl) : null;
     if (item.tapUrl && !tapUrl) throw new Error(`作者 ${item.id} 的 TapTap 主页链接无效。`);
-    if (!Array.isArray(item.gameIds)) throw new Error(`作者 ${item.id} 缺少 gameIds 数组。`);
-    return { id: item.id, name: item.name.trim().slice(0, 64), avatarUrl, tapUrl, gameIds: [...new Set(item.gameIds.map(id => validId(id, 'gameIds')))] };
+    return { id: item.id, name: item.name.trim().slice(0, 64), avatarUrl, tapUrl };
   });
 }
 
@@ -85,17 +76,19 @@ export function extractGameMetadata(appId, html) {
   for (const match of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) {
     if (!(attribute(match[1], 'class') ?? '').split(/\s+/).includes('developer-people-list__person')) continue;
     const tapUrl = tapProfileUrl(attribute(match[1], 'href'));
-    if (!tapUrl?.includes('/user/')) continue;
+    if (!tapUrl) continue;
     const nameBlock = match[2].match(/<(?:div|span)\b[^>]*class=["'][^"']*developer-people-list__person-name[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|span)>/i);
     const name = nameBlock ? text(nameBlock[1]) : '';
-    const avatarTag = [...match[2].matchAll(/<img\b[^>]*>/gi)].map(item => item[0]).find(tag => (attribute(tag, 'class') ?? '').split(/\s+/).includes('developer-people-list__avatar'));
+    const avatarTag = match[2].match(/<img\b[^>]*>/i)?.[0];
     const avatarUrl = avatarTag ? imageUrl(attribute(avatarTag, 'data-src') ?? attribute(avatarTag, 'src')) : null;
-    if (name) authors.push({ id: `tap-${tapUrl.split('/').at(-1)}`, name, avatarUrl, tapUrl });
+    if (name) authors.push({ id: profileId(tapUrl), name, avatarUrl, tapUrl });
   }
   if (!authors.length && game.author?.name) {
     const tapUrl = tapProfileUrl(game.author.url);
-    if (tapUrl) authors.push({ id: `studio-${tapUrl.split('/').at(-1)}`, name: String(game.author.name).slice(0, 64), avatarUrl: null, tapUrl });
+    if (tapUrl) authors.push({ id: profileId(tapUrl), name: String(game.author.name).slice(0, 64), avatarUrl: null, tapUrl });
   }
-  return { appId: String(appId), iconUrl: imageUrl(picture), media: media.slice(0, 30), authors: [...new Map(authors.map(author => [author.id, author])).values()] };
+  // 有明确制作人时采用制作人；只有厂商时保留工作室身份，避免重复计算两种身份。
+  const people = authors.filter(author => author.id.startsWith('tap-'));
+  return { appId: String(appId), name: String(game.name ?? '').trim().slice(0, 128), iconUrl: imageUrl(picture), media: media.slice(0, 30), authors: [...new Map((people.length ? people : authors).map(author => [author.id, author])).values()] };
 }
 

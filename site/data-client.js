@@ -1,6 +1,7 @@
 import { rankingUrl, adminEnabled } from './runtime.js';
+import { authorDetails } from '../shared/authors.mjs';
 
-const games = new Map();
+const details = new Map();
 const boardFile = () => `/data/boards/${location.pathname.replace(/^\/+|\/+$/g, '') || 'index'}.json`;
 async function json(url, refresh = false) {
   const response = await fetch(url, { cache: refresh ? 'reload' : 'default',
@@ -9,32 +10,45 @@ async function json(url, refresh = false) {
   return response.json();
 }
 
+async function summary(url, refresh) {
+  const compatible = data => !data.summary || data.boards?.some(board => board.authorCoverage) && !data.boards.some(board => board.authors?.some(author => !Array.isArray(author.gameIds)));
+  let data = await json(url, refresh);
+  if (!compatible(data)) data = await json(url, true);
+  if (!compatible(data)) throw new Error('榜单摘要版本已更新');
+  return data;
+}
+
 export async function loadRanking(refresh = false) {
-  games.clear();
+  details.clear();
   if (adminEnabled) {
-    try { return await json(`${rankingUrl}?view=summary&path=${encodeURIComponent(location.pathname)}`, refresh); }
-    catch { return json(boardFile(), refresh).catch(() => json('/data/ranking.json', refresh)); }
+    try { return await summary(`${rankingUrl}?view=summary&path=${encodeURIComponent(location.pathname)}`, refresh); }
+    catch { return summary(boardFile(), refresh).catch(() => json('/data/ranking.json', refresh)); }
   }
-  if (rankingUrl === '/data/ranking.json') return json(boardFile(), refresh).catch(() => json(rankingUrl, refresh));
+  if (rankingUrl === '/data/ranking.json') return summary(boardFile(), refresh).catch(() => json(rankingUrl, refresh));
   return json(rankingUrl, refresh);
+}
+
+function loadDetail(type, id, snapshot) {
+  const key = `${type}:${snapshot.id}:${id}:${snapshot.generatedAt}`;
+  if (!details.has(key)) {
+    const file = `/data/${type}s/${snapshot.id}/${id}.json`;
+    const url = adminEnabled ? `/api/${type}?board=${encodeURIComponent(snapshot.id)}&id=${encodeURIComponent(id)}` : file;
+    const read = refresh => json(url, refresh).catch(error => { if (!adminEnabled) throw error; return json(file, refresh); });
+    details.set(key, read(false).then(async data => {
+      if (data.generatedAt !== snapshot.generatedAt) data = await read(true);
+      if ((data[type]?.appId ?? data[type]?.id) !== id) throw new Error('详情数据无效');
+      return data;
+    }).catch(error => { details.delete(key); throw error; }));
+  }
+  return details.get(key);
+}
+
+export function loadAuthor(author, snapshot) {
+  return snapshot.summary ? loadDetail('author', author.id, snapshot) : Promise.resolve(authorDetails({...snapshot, boards:[snapshot]}, snapshot.id, author.id));
 }
 
 export function loadGame(game, snapshot) {
   if (!snapshot.summary) return Promise.resolve(game);
   if (game.status === 'pending') return Promise.resolve({ ...game, history: [], media: game.iconUrl ? [{kind:'logo',url:game.iconUrl}] : [] });
-  const key = `${snapshot.id}:${game.appId}:${snapshot.generatedAt}`;
-  if (!games.has(key)) {
-    const file = `/data/games/${snapshot.id}/${game.appId}.json`;
-    const url = adminEnabled ? `/api/game?board=${encodeURIComponent(snapshot.id)}&id=${game.appId}` : file;
-    const read = refresh => json(url, refresh).catch(error => { if (!adminEnabled) throw error; return json(file, refresh); });
-    const task = read(false)
-      .then(async data => {
-        if (data.generatedAt !== snapshot.generatedAt) data = await read(true);
-        if (data.game?.appId !== game.appId) throw new Error('游戏数据无效');
-        return { ...data.game, name: game.name, iconUrl: game.iconUrl, authorIds: game.authorIds ?? [] };
-      })
-      .catch(error => { games.delete(key); throw error; });
-    games.set(key, task);
-  }
-  return games.get(key);
+  return loadDetail('game', game.appId, snapshot).then(({game: saved}) => ({...saved, name:game.name, iconUrl:game.iconUrl, authorIds:game.authorIds ?? saved.authorIds ?? []}));
 }

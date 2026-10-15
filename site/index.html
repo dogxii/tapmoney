@@ -41,6 +41,7 @@
     <main>
       <div class="heading"><div class="heading-label"><h1>收益榜</h1><span class="as-of"><span id="freshness" class="status-dot"></span><span id="as-of">—</span></span></div>        <div class="toolbar heading-tools">
           <div class="tools">
+            <div class="tabs view-tabs" aria-label="排行视图"><button type="button" data-view="games" class="active" aria-pressed="true">游戏</button><button type="button" data-view="authors" aria-pressed="false">作者</button></div>
             <label id="author-filter" class="author-filter" hidden><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg><select id="author-select" aria-label="按作者筛选"><option value="">全部作者</option></select></label>
             <label class="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="search" type="search" placeholder="搜索" aria-label="搜索游戏或作者" autocomplete="off"></label>
             <button id="refresh" class="icon-button" type="button" aria-label="刷新快照" title="刷新快照"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg></button>
@@ -48,12 +49,13 @@
           </div>
         </div></div>
       <div id="notice" class="notice" role="status" hidden></div>
+      <p id="author-note" class="scope-note" hidden></p>
       <section class="ranking" aria-label="游戏收益排行" aria-busy="true">
 
         <div class="table-wrap" tabindex="0" role="region" aria-label="收益表格"><table><thead><tr><th scope="col" class="rank-column">#</th><th scope="col" class="game-column">游戏</th><th scope="col" class="author-column">作者</th><th scope="col" class="numeric selected" data-column="yesterday" aria-sort="descending"><button class="sort-button" type="button" data-metric="yesterday" title="按昨日收益从高到低排序" aria-label="按昨日收益从高到低排序">昨日<svg class="sort-arrow icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></th><th scope="col" class="numeric" data-column="month" aria-sort="none"><button class="sort-button" type="button" data-metric="month" title="按本月收益从高到低排序" aria-label="按本月收益从高到低排序">本月<svg class="sort-arrow icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></th><th scope="col" class="numeric" data-column="total" aria-sort="none"><button class="sort-button" type="button" data-metric="total" title="按累计收益从高到低排序" aria-label="按累计收益从高到低排序">累计<svg class="sort-arrow icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></th></tr></thead><tbody id="games"></tbody></table></div>
         <div id="empty" class="empty" hidden>没有匹配的游戏</div>
         <div id="loading" class="loading-state" role="status" aria-label="加载榜单"><span></span><span></span></div>
-        <div class="ranking-footer"><div><span id="result-count">—</span><span class="footer-separator"></span><span class="sum-mark" title="当前筛选结果合计" aria-hidden="true">Σ</span><strong id="aggregate" aria-label="收益合计">—</strong></div><nav id="pagination" class="pagination" aria-label="表格分页" hidden><button id="page-prev" class="icon-button" type="button" aria-label="上一页"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button><span id="page-position"></span><button id="page-next" class="icon-button" type="button" aria-label="下一页"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></nav><span class="updated"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><time id="updated-at">—</time></span></div>
+        <div class="ranking-footer"><div><span id="result-count">—</span><span id="aggregate-group"><span class="footer-separator"></span><span class="sum-mark" title="当前筛选结果合计" aria-hidden="true">Σ</span><strong id="aggregate" aria-label="收益合计">—</strong></span></div><nav id="pagination" class="pagination" aria-label="表格分页" hidden><button id="page-prev" class="icon-button" type="button" aria-label="上一页"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button><span id="page-position"></span><button id="page-next" class="icon-button" type="button" aria-label="下一页"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></nav><span class="updated"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><time id="updated-at">—</time></span></div>
       </section>
     </main>
   </div>

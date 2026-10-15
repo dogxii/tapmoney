@@ -82,17 +82,18 @@ function blob(element) {
   return new Promise((resolve, reject) => element.toBlob(value => value ? resolve(value) : reject(new Error('图片生成失败。')), 'image/png'));
 }
 
-async function gameCard({ game, snapshot, profiles, mode, days }) {
+async function gameCard({ game, snapshot, profiles, mode, days, authorView = false }) {
   await document.fonts.ready;
   const { element, ctx } = canvas(930);
   text(ctx, 'TapMoney', 64, 62, 22, muted, 600);
-  await portrait(ctx, game.iconUrl, game.name, 64, 106, 84, 22);
+  await portrait(ctx, authorView ? game.avatarUrl : game.iconUrl, game.name, 64, 106, 84, authorView ? 42 : 22);
   text(ctx, game.name, 170, 146, 36, ink, 600, 830);
   const authors = (game.authorIds ?? []).map(id => profiles.get(id)).filter(Boolean);
   if (authors.length) {
     await portrait(ctx, authors[0].avatarUrl, authors[0].name, 172, 164, 25, 13);
     text(ctx, authors.map(author => author.name).join(' / '), 209, 184, 21, muted, 400, 785);
   }
+  if (authorView) text(ctx, `${game.gameCount} 款已收录作品 · 合作作品分别归属`, 172, 184, 21, muted, 400, 785);
   for (const [index, key] of ['yesterday', 'month', 'total'].entries()) {
     const x = 64 + index * 330;
     text(ctx, key === 'total' ? '累计收益' : `${metricLabels[key]}收益`, x, 260, 22, muted);
@@ -109,28 +110,28 @@ async function gameCard({ game, snapshot, profiles, mode, days }) {
   return blob(element);
 }
 
-async function rankingCard({ rows, snapshot, metric, profiles, filter, page = 1, pages = 1 }) {
+async function rankingCard({ rows, snapshot, metric, profiles, filter, authorView = false, page = 1, pages = 1 }) {
   await document.fonts.ready;
   const { element, ctx } = canvas(300 + Math.max(1, rows.length) * 112);
-  text(ctx, `${snapshot.name ?? '收益榜'} · ${metricLabels[metric]}`, 64, 96, 42, ink, 600, 760);
+  text(ctx, `${snapshot.name ?? '收益榜'} · ${authorView ? '作者 · ' : ''}${metricLabels[metric]}`, 64, 96, 42, ink, 600, 760);
   ctx.textAlign = 'right'; text(ctx, 'TapMoney', 1016, 92, 24, muted, 600); ctx.textAlign = 'left';
   text(ctx, periodLabel(snapshot, metric), 64, 145, 23, muted);
-  if (filter) text(ctx, `筛选：${filter}`, 64, 178, 19, muted, 400, 900);
+  if (authorView || filter) text(ctx, authorView ? '已收录作品广告收益 · 合作作品分别计入各作者' : `筛选：${filter}`, 64, 178, 19, muted, 400, 900);
   rule(ctx, 204);
-  await Promise.all(rows.map(row => image(row.game.iconUrl)));
+  await Promise.all(rows.map(row => image(authorView ? row.game.avatarUrl : row.game.iconUrl)));
   for (const [index, row] of rows.entries()) {
     const y = 222 + index * 112;
     text(ctx, row.rank ?? '—', 64, y + 48, 24, muted);
-    await portrait(ctx, row.game.iconUrl, row.game.name, 119, y + 15, 64, 16);
+    await portrait(ctx, authorView ? row.game.avatarUrl : row.game.iconUrl, row.game.name, 119, y + 15, 64, authorView ? 32 : 16);
     text(ctx, row.game.name, 204, y + 42, 27, ink, 550, 475);
     const names = (row.game.authorIds ?? []).map(id => profiles.get(id)?.name).filter(Boolean).join(' / ');
-    text(ctx, names, 204, y + 76, 20, muted, 400, 460);
+    text(ctx, authorView ? `${row.game.gameCount} 款作品` : names, 204, y + 76, 20, muted, 400, 460);
     ctx.textAlign = 'right'; text(ctx, row.amount === null ? '—' : money.format(row.amount), 1016, y + 45, 31, row.amount === null ? muted : ink, 550);
     if (row.growth !== null) text(ctx, `${row.growth > 0 ? '+' : ''}${row.growth.toFixed(1)}% ${metric === 'month' ? '较上月同期' : '较前日'}`, 1016, y + 76, 18, row.growth > 0 ? '#29aa72' : row.growth < 0 ? '#d05c5c' : muted);
     ctx.textAlign = 'left';
   }
   if (!rows.length) text(ctx, '暂无匹配数据', 64, 282, 24, muted);
-  footer(ctx, element.height - 40, `已收录游戏 · ${rows.length} 款${pages > 1 ? ` · ${page}/${pages}` : ''}`);
+  footer(ctx, element.height - 40, `${authorView ? '作者' : '已收录游戏'} · ${rows.length} ${authorView ? '位' : '款'}${pages > 1 ? ` · ${page}/${pages}` : ''}`);
   return blob(element);
 }
 
@@ -179,7 +180,7 @@ function shareButton(view, getFile) {
 
 export async function showRankingExport(options) {
   const view = exportDialog('导出榜单');
-  const name = fileName(`TapMoney-${options.snapshot.name ?? '收益榜'}-${metricLabels[options.metric]}-${options.snapshot.asOf ?? '待采集'}`);
+  const name = fileName(`TapMoney-${options.snapshot.name ?? '收益榜'}-${options.authorView ? '作者-' : ''}${metricLabels[options.metric]}-${options.snapshot.asOf ?? '待采集'}`);
   let png;
   const save = view.button('保存 PNG', () => { if (png) download(png, `${name}.png`); }, true); save.disabled = true;
   if (options.rows.length > 20) view.button('全部分页 ZIP', async () => {
@@ -193,14 +194,29 @@ export async function showRankingExport(options) {
     }
     download(zipFiles(files), `${name}.zip`); view.message('已导出全部分页');
   });
-  view.button('CSV', () => download(new Blob([rankingCsv(options.rows, options.snapshot, options.metric, options.profiles)], {type: 'text/csv;charset=utf-8'}), `${name}.csv`));
+  view.button('CSV', () => download(new Blob([rankingCsv(options.rows, options.snapshot, options.metric, options.profiles, options.authorView)], {type: 'text/csv;charset=utf-8'}), `${name}.csv`));
   const readyShare = shareButton(view, () => png && new File([png], `${name}.png`, {type: 'image/png'}));
   view.message('生成中…');
   try {
     png = await rankingCard({ ...options, rows: options.rows.slice(0, 20) });
     if (!view.active()) return;
     view.preview(png); save.disabled = false; readyShare();
-    view.message(options.rows.length > 20 ? `预览前 20 款 · 共 ${options.rows.length} 款` : '');
+    view.message(options.rows.length > 20 ? `预览前 20 ${options.authorView ? '位' : '款'} · 共 ${options.rows.length} ${options.authorView ? '位' : '款'}` : '');
+  } catch { if (view.active()) view.message('图片生成失败，请重试', true); }
+}
+
+
+export async function showAuthorExport(options) {
+  const view = exportDialog('导出作者统计');
+  const name = fileName(`${options.game.name}-${options.game.asOf ?? '待采集'}`);
+  let png;
+  const save = view.button('保存 PNG', () => png && download(png, `${name}.png`), true); save.disabled = true;
+  const readyShare = shareButton(view, () => png && new File([png], `${name}.png`, {type:'image/png'}));
+  view.message('生成中…');
+  try {
+    png = await gameCard({...options, authorView:true});
+    if (!view.active()) return;
+    view.preview(png); save.disabled = false; readyShare(); view.message('');
   } catch { if (view.active()) view.message('图片生成失败，请重试', true); }
 }
 

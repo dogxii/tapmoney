@@ -1,11 +1,13 @@
 import { boardInfo, boardAtPath } from './boards.mjs';
 import { periodGrowth, previousValue } from '../site/data-utils.js';
+import { authorsRanking } from './authors.mjs';
 
 export function rankingSummary(snapshot, pathname) {
   const selected = boardAtPath(snapshot.boards, pathname);
   const { boards, games, authors, revision, ...common } = snapshot;
   return { ...common, summary: true, boards: boards.map(board => ({
-    ...boardInfo(board), authors: board === selected ? board.authors : [],
+    ...boardInfo(board), authors: board === selected ? authorsRanking(board, snapshot) : [],
+    ...(board === selected ? {authorCoverage: {assigned: board.games.filter(game => game.authorIds?.length).length, total: board.games.length}} : {}),
     games: board !== selected ? [] : board.games.map(game => {
       const revenue = Object.fromEntries(Object.entries(game.revenue ?? {}).filter(([,value]) => typeof value === 'number'));
       const metrics = ['yesterday', 'month', 'total'];

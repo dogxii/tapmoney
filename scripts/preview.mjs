@@ -11,7 +11,7 @@ const server = createServer(async (request, response) => {
     const page = pathname === '/' || /^\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/.test(pathname) && !['/api', '/data', '/media', '/shared'].includes(pathname.replace(/\/$/, ''));
     const target = path.resolve(site, `.${page ? '/index.html' : pathname}`);
     if (!target.startsWith(site + path.sep)) { response.writeHead(403).end(); return; }
-    const content = pathname === '/shared/boards.mjs' && !process.argv.includes('--built') ? await readFile(path.join(ROOT, 'shared/boards.mjs')) : await readFile(target);
+    const content = /^\/shared\/[a-z-]+\.mjs$/.test(pathname) && !process.argv.includes('--built') ? await readFile(path.join(ROOT, pathname.slice(1))) : await readFile(target);
     response.writeHead(200, { 'Content-Type': types[path.extname(target)] ?? 'application/octet-stream', 'Cache-Control': 'no-store' });
     response.end(content);
   } catch { if (!response.headersSent) response.writeHead(404); response.end('Not found'); }

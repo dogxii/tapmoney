@@ -1,39 +1,44 @@
 import { money, node, portrait, authorLink, iconButton } from './ui.js';
 import { adminEnabled } from './runtime.js';
-import { loadRanking, loadGame } from './data-client.js';
+import { loadRanking, loadGame, loadAuthor } from './data-client.js';
 import { metricValue, rankingRows, periodGrowth } from './data-utils.js';
+import { authorsRanking } from '../shared/authors.mjs';
 import { boardsOf, validateBoards, boardAtPath, boardPath, boardSnapshot } from '../shared/boards.mjs';
 const metrics = { yesterday: '昨日', month: '本月', total: '累计' };
 const dateTime = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 let snapshot;
 let metric = 'yesterday';
+let authorView = new URLSearchParams(location.search).get('view') === 'authors';
 let profiles = new Map();
 let visibleRows = [];
 let page = 0;
 const pageSize = 100;
 const rankings = new Map(), searchTerms = new Map();
 let detailRequest = 0;
-async function openGame(game) {
+async function openGame(game, isAuthor = false) {
   const request = ++detailRequest;
   const dialog = document.querySelector('#game-detail');
   const header = node('div', 'dialog-header');
-  const close = iconButton('close', '关闭游戏统计'); close.addEventListener('click', () => dialog.close());
+  const close = iconButton('close', isAuthor ? '关闭作者统计' : '关闭游戏统计'); close.addEventListener('click', () => dialog.close());
   header.append(node('h2', '', game.name), close);
   dialog.setAttribute('aria-label', `${game.name}统计`); dialog.setAttribute('aria-busy', 'true');
   dialog.replaceChildren(header, node('div', 'empty', '加载中…'));
   if (!dialog.open) dialog.showModal();
   try {
-    const [details, { showGameDetails }] = await Promise.all([loadGame(game, snapshot), import('./stats.js')]);
-    if (request === detailRequest && dialog.open) showGameDetails(details, snapshot, profiles);
+    const [details, stats] = await Promise.all([isAuthor ? loadAuthor(game, snapshot) : loadGame(game, snapshot), import('./stats.js')]);
+    if (request === detailRequest && dialog.open) {
+      if (isAuthor) stats.showAuthorDetails(details, snapshot, profiles, openGame);
+      else stats.showGameDetails(details, snapshot, profiles);
+    }
   } catch {
     if (request === detailRequest && dialog.open) {
       const retry = node('button', 'text-button', '重新加载'); retry.type = 'button';
-      retry.addEventListener('click', () => { dialog.close(); openGame(game); });
+      retry.addEventListener('click', () => { dialog.close(); openGame(game, isAuthor); });
       dialog.replaceChildren(header, node('div', 'empty', '暂时无法加载'), retry);
     }
   } finally { if (request === detailRequest) dialog.setAttribute('aria-busy', 'false'); }
 }
-document.querySelector('#board-select').addEventListener('change', event => { location.href = event.target.value; });
+document.querySelector('#board-select').addEventListener('change', event => { location.href = event.target.value + (authorView ? '?view=authors' : ''); });
 
 function value(game, key) {
   return metricValue(game, key, snapshot);
@@ -43,11 +48,12 @@ function render(resetPage = true) {
   if (!snapshot) return;
   if (resetPage) page = 0;
   const search = document.querySelector('#search').value.trim().toLocaleLowerCase();
-  const selectedAuthor = document.querySelector('#author-select').value;
-  if (!rankings.has(metric)) rankings.set(metric, rankingRows(snapshot.games, metric, snapshot));
-  visibleRows = rankings.get(metric).filter(({game}) => {
+  const selectedAuthor = authorView ? '' : document.querySelector('#author-select').value;
+  const cacheKey = `${authorView}:${metric}`;
+  if (!rankings.has(cacheKey)) rankings.set(cacheKey, rankingRows(authorView ? snapshot.authors : snapshot.games, metric, snapshot));
+  visibleRows = rankings.get(cacheKey).filter(({game}) => {
     const ids = game.authorIds ?? [];
-    return (!selectedAuthor || ids.includes(selectedAuthor)) && searchTerms.get(game.appId).includes(search);
+    return (!selectedAuthor || ids.includes(selectedAuthor)) && (searchTerms.get(`${authorView ? 'author' : 'game'}:${game.appId ?? game.id}`) ?? '').includes(search);
   });
   const visible = visibleRows.map(row => row.game);
   const tbody = document.querySelector('#games');
@@ -55,30 +61,40 @@ function render(resetPage = true) {
   const fragment = document.createDocumentFragment();
   const pages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
   page = Math.min(page, pages - 1);
-  document.querySelectorAll('th.author-column').forEach(cell => { cell.hidden = profiles.size === 0; });
+  document.querySelectorAll('th.author-column').forEach(cell => { cell.hidden = !authorView && profiles.size === 0; });
+  document.querySelector('th.game-column').textContent = authorView ? '作者' : '游戏';
+  document.querySelector('th.author-column').textContent = authorView ? '游戏数' : '作者';
+  document.querySelector('#author-filter').hidden = authorView || profiles.size < 2;
+  document.querySelector('#aggregate-group').hidden = authorView;
+  document.querySelector('#author-note').hidden = !authorView;
+  document.querySelector('.ranking').setAttribute('aria-label', authorView ? '作者作品收益排行' : '游戏收益排行');
+  const coverage = snapshot.authorCoverage;
+  document.querySelector('#author-note').textContent = '本榜已收录作品广告收益 · 合作作品分别计入各作者' + (coverage && coverage.assigned < coverage.total ? ` · ${coverage.total - coverage.assigned} 款未识别作者` : '');
+  document.querySelectorAll('[data-view]').forEach(button => { const active = (button.dataset.view === 'authors') === authorView; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
+  document.querySelector('#empty').textContent = authorView ? '没有匹配的作者' : '没有匹配的游戏';
   for (const ranked of visibleRows.slice(page * pageSize, (page + 1) * pageSize)) {
     const game = ranked.game;
     const row = node('tr');
     const rank = node('td', 'rank-column'); rank.append(node('span', '', ranked.rank ?? '—'));
     if (ranked.movement) {
       const change = node('small', ranked.movement > 0 ? 'positive rank-movement' : 'negative rank-movement', `${ranked.movement > 0 ? '↑' : '↓'}${Math.abs(ranked.movement)}`);
-      change.title = `较前日${ranked.movement > 0 ? '上升' : '下降'} ${Math.abs(ranked.movement)} 名 · 当前已收录游戏`; rank.append(change);
+      change.title = `较前日${ranked.movement > 0 ? '上升' : '下降'} ${Math.abs(ranked.movement)} 名 · 当前榜已收录${authorView ? '作者' : '游戏'}`; rank.append(change);
     }
     row.append(rank);
     const gameCell = node('td', 'game-column');
     const detail = node('div', 'game-cell');
-    detail.append(portrait(game.iconUrl, game.name, 'game-logo'));
+    detail.append(portrait(authorView ? game.avatarUrl : game.iconUrl, game.name, authorView ? 'author-portrait avatar' : 'game-logo'));
     const text = node('div', 'game-text');
     const name = node('div', 'game-name');
     const link = node('button', 'game-open', game.name);
-    link.type = 'button'; link.title = '查看游戏统计';
-    link.addEventListener('click', () => openGame(game));
+    link.type = 'button'; link.title = authorView ? '查看作者统计' : '查看游戏统计';
+    link.addEventListener('click', () => openGame(game, authorView));
     row.classList.add('game-row');
-    row.addEventListener('click', event => { if (!event.target.closest('a,button')) openGame(game); });
+    row.addEventListener('click', event => { if (!event.target.closest('a,button')) openGame(game, authorView); });
     name.append(link);
     if (game.status !== 'ok') {
       const indicator = node('span', `status-dot ${game.status === 'stale' ? 'stale' : 'unavailable'}`);
-      indicator.title = game.status === 'stale' ? `历史数据 · 截至 ${game.asOf}` : game.status === 'pending' ? '待采集' : '暂无收益数据';
+      indicator.title = authorView ? '部分作品数据不完整' : game.status === 'stale' ? `历史数据 · 截至 ${game.asOf}` : game.status === 'pending' ? '待采集' : '暂无收益数据';
       indicator.setAttribute('role', 'img'); indicator.setAttribute('aria-label', indicator.title);
       name.append(indicator);
     }
@@ -86,19 +102,22 @@ function render(resetPage = true) {
     const authors = (game.authorIds ?? []).map(id => profiles.get(id)).filter(Boolean);
     const mobile = node('div', 'mobile-authors');
     authors.forEach(author => mobile.append(authorLink(author)));
-    if (authors.length) text.append(mobile);
+    if (authorView) mobile.append(node('span', '', `${game.gameCount} 款作品`));
+    if (authorView || authors.length) text.append(mobile);
     detail.append(text); gameCell.append(detail); row.append(gameCell);
-    if (profiles.size) {
+    if (authorView || profiles.size) {
       const authorCell = node('td', 'author-column');
       const group = node('div', 'authors-inline');
-      authors.forEach(author => group.append(authorLink(author)));
-      if (!authors.length) group.append(node('span', 'value-missing', '—'));
+      if (authorView) group.append(node('span', '', String(game.gameCount)));
+      else authors.forEach(author => group.append(authorLink(author)));
+      if (!authorView && !authors.length) group.append(node('span', 'value-missing', '—'));
       authorCell.append(group); row.append(authorCell);
     }
     for (const key of Object.keys(metrics)) {
       const amount = value(game, key);
       const cell = node('td', `numeric${metric === key ? ' selected' : ''}${amount === null ? ' value-missing' : ''}`, amount === null ? '—' : money.format(amount));
       cell.title = `${metrics[key]}广告收益 · 截至 ${game.asOf ?? '暂无数据'}${key === 'total' && game.totalStartDate ? ` · 起始 ${game.totalStartDate}` : ''}`;
+      if (authorView && amount === null) cell.title = `${metrics[key]}：${game.metricCounts[key]}/${game.gameCount} 款有可用数据，未齐全时不显示合计`;
       const growth = periodGrowth(game, key, snapshot);
       if (growth !== null) {
         const change = node('small', `revenue-growth ${growth > 0 ? 'positive' : growth < 0 ? 'negative' : ''}`, `${growth > 0 ? '+' : ''}${growth.toFixed(1)}%`);
@@ -114,7 +133,7 @@ function render(resetPage = true) {
   document.querySelector('#page-prev').disabled = page === 0;
   document.querySelector('#page-next').disabled = page === pages - 1;
   document.querySelector('#empty').hidden = visible.length > 0;
-  document.querySelector('#result-count').textContent = `${visible.length} 款`;
+  document.querySelector('#result-count').textContent = `${visible.length} ${authorView ? '位' : '款'}`;
   const values = visible.map(game => value(game, metric)).filter(amount => amount !== null);
   const aggregate = document.querySelector('#aggregate');
   aggregate.textContent = values.length ? money.format(values.reduce((sum, amount) => sum + amount, 0)) : '—';
@@ -144,7 +163,7 @@ document.querySelector('#export-ranking').addEventListener('click', async () => 
   if (!snapshot) return;
   const search = document.querySelector('#search').value.trim();
   const author = profiles.get(document.querySelector('#author-select').value)?.name;
-  const options = { rows: visibleRows, snapshot, metric, profiles, filter: [search, author].filter(Boolean).join(' · ') };
+  const options = { rows: visibleRows, snapshot, metric, profiles, authorView, filter: [search, authorView ? '' : author].filter(Boolean).join(' · ') };
   const { showRankingExport } = await import('./export.js');
   showRankingExport(options);
 });
@@ -188,9 +207,12 @@ async function load(refresh = false) {
     document.querySelector('.as-of').hidden = !board;
     notice(''); snapshot = board ? boardSnapshot(data, board) : null;
     if (!snapshot) return;
+    if (!data.summary) snapshot.authors = authorsRanking(board, data);
     profiles = new Map(snapshot.authors.map(author => [author.id, author]));
     rankings.clear(); searchTerms.clear();
-    for (const game of snapshot.games) searchTerms.set(game.appId, `${game.name} ${game.appId} ${(game.authorIds ?? []).map(id => profiles.get(id)?.name ?? '').join(' ')}`.toLocaleLowerCase());
+    for (const game of snapshot.games) searchTerms.set(`game:${game.appId}`, `${game.name} ${game.appId} ${(game.authorIds ?? []).map(id => profiles.get(id)?.name ?? '').join(' ')}`.toLocaleLowerCase());
+    const gameNames = new Map(snapshot.games.map(game => [game.appId,game.name]));
+    for (const author of snapshot.authors) searchTerms.set(`author:${author.id}`, `${author.name} ${author.id} ${author.gameIds.map(id => gameNames.get(id) ?? '').join(' ')}`.toLocaleLowerCase());
     const select = document.querySelector('#author-select');
     const selection = select.value;
     select.replaceChildren(node('option', '', '全部作者'));
@@ -216,6 +238,11 @@ async function load(refresh = false) {
     document.querySelector('#export-ranking').disabled = !snapshot;
   }
 }
+document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
+  authorView = button.dataset.view === 'authors';
+  const url = new URL(location.href); if (authorView) url.searchParams.set('view', 'authors'); else url.searchParams.delete('view');
+  history.replaceState(null, '', url); render();
+}));
 document.querySelector('#refresh').addEventListener('click', () => load(true));
 load();
 if (adminEnabled) {
@@ -224,7 +251,7 @@ if (adminEnabled) {
   entry.addEventListener('click', async () => {
     entry.disabled = true;
     try {
-      admin ??= import('./admin.js').then(({initAdmin}) => initAdmin({ getBoardId: () => snapshot?.id, onSaved: async path => { if (path) history.replaceState(null, '', path); await load(true); } }));
+      admin ??= import('./admin.js').then(({initAdmin}) => initAdmin({ getBoardId: () => snapshot?.id, onSaved: async path => { if (path) history.replaceState(null, '', path + (authorView ? '?view=authors' : '')); await load(true); } }));
       const open = await admin; await open();
     } catch { admin = undefined; notice('暂时无法加载管理界面', true); }
     finally { entry.disabled = false; }

@@ -6,6 +6,7 @@ export function initAdmin({ onSaved, getBoardId }) {
   dialog.setAttribute('aria-label', '管理');
   const entry = document.querySelector('#manage-open');
   let token = '', config, boardId, tab = 'games';
+  let listPage = 0, listSearch = '';
   const currentBoard = (value = config) => value.boards.find(board => board.id === boardId) ?? value.boards.find(board => board.slug === '');
   const selectCurrentBoard = () => { boardId = getBoardId() ?? config.boards.find(board => board.slug === '').id; };
   let collection, collectionError = '', collecting = false, checking = false, collectionTimer;
@@ -13,7 +14,7 @@ export function initAdmin({ onSaved, getBoardId }) {
   const coolingDown = () => Date.parse(collection?.nextAllowedAt) > Date.now();
   try { token = sessionStorage.getItem('tapmoney-admin') ?? ''; } catch { /* 可仅使用内存登录 */ }
   const remember = () => { try { if (token) sessionStorage.setItem('tapmoney-admin', token); else sessionStorage.removeItem('tapmoney-admin'); } catch { /* 存储不可用 */ } };
-  const syncEntry = () => { entry.replaceChildren(icon(config ? 'edit' : 'plus')); entry.title = config ? '管理游戏与作者' : '管理'; entry.setAttribute('aria-label', entry.title); };
+  const syncEntry = () => { entry.replaceChildren(icon(config ? 'edit' : 'plus')); entry.title = config ? '管理榜单' : '管理'; entry.setAttribute('aria-label', entry.title); };
   async function api(route, options = {}) {
     const response = await fetch(route, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, cache: 'no-store' });
     const data = await response.json().catch(() => ({}));
@@ -65,16 +66,16 @@ export function initAdmin({ onSaved, getBoardId }) {
     if (tab !== 'boards') {
       const scope = node('div', 'admin-scope'); const select = node('select'); select.setAttribute('aria-label', '管理的榜单');
       for (const item of config.boards) { const option = node('option', '', `${item.name} · ${boardPath(item)}`); option.value = item.id; select.append(option); }
-      select.value = board.id; select.addEventListener('change', () => { boardId = select.value; showPanel(); }); scope.append(select); dialog.append(scope);
+      select.value = board.id; select.addEventListener('change', () => { boardId = select.value; listPage = 0; listSearch = ''; showPanel(); }); scope.append(select); dialog.append(scope);
     }
     const toolbar = node('div', 'admin-toolbar');
     const tabs = node('div', 'tabs');
-    for (const [key, title] of [['games', '游戏'], ['authors', '作者'], ['boards', '榜单']]) {
+    for (const [key, title] of [['games', '游戏'], ['boards', '榜单']]) {
       const button = node('button', key === tab ? 'active' : '', title); button.type = 'button'; button.setAttribute('aria-pressed', String(key === tab));
-      button.addEventListener('click', () => { tab = key; showPanel(); }); tabs.append(button);
+      button.addEventListener('click', () => { tab = key; listPage = 0; listSearch = ''; showPanel(); }); tabs.append(button);
     }
-    const add = node('button', 'secondary-button'); add.type = 'button'; add.append(icon('plus'), document.createTextNode(tab === 'games' ? '添加游戏' : tab === 'authors' ? '添加作者' : '新建榜单'));
-    add.addEventListener('click', () => tab === 'games' ? editGame() : tab === 'authors' ? editAuthor() : editBoard());
+    const add = node('button', 'secondary-button'); add.type = 'button'; add.append(icon('plus'), document.createTextNode(tab === 'games' ? '添加游戏' : '新建榜单'));
+    add.addEventListener('click', () => tab === 'games' ? addGame() : editBoard());
     const collect = iconButton('refresh', '采集下一批'); collect.id = 'admin-collect';
     collect.addEventListener('click', async () => {
       collecting = true; collectionError = ''; updateCollection();
@@ -85,31 +86,42 @@ export function initAdmin({ onSaved, getBoardId }) {
     });
     const tools = node('div', 'dialog-actions'); tools.append(collect, add); toolbar.append(tabs, tools);
     const list = node('div', 'admin-list');
-    const items = tab === 'boards' ? config.boards : board[tab];
-    for (const item of items) {
-      const row = node('div', 'admin-row');
-      const avatarUrl = item.avatarUrl || (item.qq ? `https://q1.qlogo.cn/g?b=qq&nk=${encodeURIComponent(item.qq)}&s=100` : null);
-      if (tab !== 'boards') row.append(portrait(tab === 'games' ? item.iconUrl : avatarUrl, item.name, tab === 'games' ? 'game-logo' : 'avatar'));
-      const text = node('div', 'admin-row-text'); text.append(node('strong', '', item.name));
-      text.append(node('span', '', tab === 'games' ? item.appId : tab === 'authors' ? `${item.gameIds.length} 款游戏` : `${boardPath(item)} · ${item.games.length} 款游戏`)); row.append(text);
-      const edit = iconButton('edit', `编辑${item.name}`); edit.addEventListener('click', () => tab === 'games' ? editGame(item) : tab === 'authors' ? editAuthor(item) : editBoard(item));
-      const remove = iconButton('trash', `删除${item.name}`);
-      remove.addEventListener('click', async () => {
-        if (!window.confirm(tab === 'boards' ? `删除「${item.name}」及该榜的游戏和作者配置？` : `从「${board.name}」删除「${item.name}」？`)) return;
-        remove.disabled = true;
-        const next = structuredClone(config);
-        const target = currentBoard(next);
-        if (tab === 'games') { target.games = target.games.filter(game => game.appId !== item.appId); target.authors.forEach(author => { author.gameIds = author.gameIds.filter(id => id !== item.appId); }); }
-        else if (tab === 'authors') target.authors = target.authors.filter(author => author.id !== item.id);
-        else next.boards = next.boards.filter(board => board.id !== item.id);
-        try { await save(next, tab === 'boards' && item.id === getBoardId() ? '/' : undefined); showPanel('已删除'); }
-        catch (error) { if (!config) showLogin(error.message); else showPanel(error.message); }
-      });
-      const actions = node('div', 'dialog-actions'); actions.append(edit); if (tab !== 'boards' || item.slug !== '') actions.append(remove); row.append(actions); list.append(row);
+    const search = field('搜索游戏', listSearch, {type:'search'}); search.wrapper.hidden = tab !== 'games';
+    const pagination = node('nav', 'pagination admin-pagination'); pagination.setAttribute('aria-label','管理列表分页');
+    const previous = iconButton('arrow','上一页'), nextPage = iconButton('arrow','下一页'), position = node('span');
+    previous.style.transform = 'rotate(90deg)'; nextPage.style.transform = 'rotate(-90deg)';
+    pagination.append(previous,position,nextPage);
+    previous.addEventListener('click',()=>{listPage--;renderList();}); nextPage.addEventListener('click',()=>{listPage++;renderList();});
+    search.input.addEventListener('input',()=>{listSearch=search.input.value;listPage=0;renderList();});
+    function renderList() {
+      list.replaceChildren();
+      const query = listSearch.trim().toLocaleLowerCase();
+      const items = (tab === 'boards' ? config.boards : board.games).filter(item=>tab === 'boards' || `${item.name} ${item.appId}`.toLocaleLowerCase().includes(query));
+      const pages = Math.max(1, Math.ceil(items.length / 100)); listPage = Math.min(listPage, pages - 1);
+      pagination.hidden = pages < 2; position.textContent=`${listPage+1} / ${pages}`;previous.disabled=listPage===0;nextPage.disabled=listPage===pages-1;
+      for (const item of items.slice(listPage*100,(listPage+1)*100)) {
+        const row = node('div', 'admin-row');
+        if (tab !== 'boards') row.append(portrait(item.iconUrl, item.name, 'game-logo'));
+        const text = node('div', 'admin-row-text'); text.append(node('strong', '', item.name));
+        text.append(node('span', '', tab === 'games' ? item.appId : `${boardPath(item)} · ${item.games.length} 款游戏`)); row.append(text);
+        const remove = iconButton('trash', `删除${item.name}`);
+        remove.addEventListener('click', async () => {
+          if (!window.confirm(tab === 'boards' ? `删除「${item.name}」及该榜的游戏配置？` : `从「${board.name}」删除「${item.name}」？`)) return;
+          remove.disabled = true;
+          const next = structuredClone(config);
+          const target = currentBoard(next);
+          if (tab === 'games') target.games = target.games.filter(game => game.appId !== item.appId);
+          else next.boards = next.boards.filter(board => board.id !== item.id);
+          try { await save(next, tab === 'boards' && item.id === getBoardId() ? '/' : undefined); showPanel('已删除'); }
+          catch (error) { if (!config) showLogin(error.message); else showPanel(error.message); }
+        });
+        const actions = node('div', 'dialog-actions'); if (tab === 'boards') { const edit = iconButton('edit', `编辑${item.name}`); edit.addEventListener('click', () => editBoard(item)); actions.append(edit); } if (tab !== 'boards' || item.slug !== '') actions.append(remove); row.append(actions); list.append(row);
+      }
+      if (!items.length) list.append(node('div', 'empty', '暂无游戏'));
     }
-    if (!items.length) list.append(node('div', 'empty', tab === 'games' ? '暂无游戏' : '暂无作者'));
+    renderList();
     const collectionStatus = node('div', 'admin-collection'); collectionStatus.id = 'admin-collection-status'; collectionStatus.setAttribute('role', 'status');
-    dialog.append(toolbar, list, collectionStatus, message(feedback));
+    dialog.append(toolbar, search.wrapper, list, pagination, collectionStatus, message(feedback));
     updateCollection(); scheduleCollectionCheck();
   }
   function updateCollection() {
@@ -186,74 +198,34 @@ export function initAdmin({ onSaved, getBoardId }) {
       finally { view.submit.disabled = false; }
     });
   }
-  function editGame(game) {
+  function addGame() {
     const board = currentBoard();
-    const view = editor(`${game ? '编辑游戏' : '添加游戏'} · ${board.name}`);
-    const id = field('游戏 ID / TapTap 链接', game?.appId ?? '', { required: true }); id.input.disabled = Boolean(game);
-    const name = field('名称', game?.name ?? '', { required: true }); name.input.maxLength = 128;
-    const logo = field('Logo 链接', game?.iconUrl ?? '', { type: 'url', placeholder: '自动获取，可留空' });
-    const start = field('累计起始日期', game?.totalStartDate ?? '2020-01-01', { type: 'date', required: true });
-    const lookup = iconButton('refresh', '获取游戏资料'); id.wrapper.classList.add('lookup-field'); id.wrapper.append(lookup);
-    let lookingUp = false;
-    async function lookupGame() {
-      const appId = gameId(id.input.value); if (!appId || lookingUp) return;
-      lookingUp = true; lookup.disabled = true;
-      try { const data = await api(`/api/admin/game?id=${appId}`); if (!name.input.value) name.input.value = data.name ?? ''; if (!logo.input.value) logo.input.value = data.iconUrl ?? ''; setMessage(view.status, ''); }
-      catch (error) { if (!config) showLogin(error.message); else setMessage(view.status, error.message, true); }
-      finally { lookup.disabled = false; lookingUp = false; }
-    }
-    lookup.addEventListener('click', lookupGame); if (!game) id.input.addEventListener('blur', lookupGame);
-    view.fields.append(id.wrapper, name.wrapper, logo.wrapper, start.wrapper);
-    const group = node('fieldset', 'bindings'); group.append(node('legend', '', '作者'));
-    const select = node('select'); select.setAttribute('aria-label', '游戏作者'); select.append(node('option', '', '自动识别')); select.firstElementChild.value = '';
-    for (const author of board.authors) { const option = node('option', '', author.name); option.value = author.id; select.append(option); }
-    const bound = board.authors.filter(author => author.gameIds.includes(game?.appId));
-    if (bound.length === 1) select.value = bound[0].id;
-    const multi = bound.length > 1;
-    if (multi) {
-      const keep = node('option', '', '保留当前多作者绑定'); keep.value = '__keep'; select.append(keep); select.value = '__keep';
-    }
-    group.append(select); view.fields.append(group);
+    const view = editor(`添加游戏 · ${board.name}`);
+    const id = field('游戏 ID / TapTap 链接', '', { required: true });
+    const preview = node('div', 'game-preview'); preview.hidden = true;
+    view.fields.append(id.wrapper, preview); view.submit.textContent = '获取资料';
+    let metadata;
+    id.input.addEventListener('input', () => { metadata = undefined; preview.hidden = true; view.submit.textContent = '获取资料'; setMessage(view.status, ''); });
     view.form.addEventListener('submit', async event => {
       event.preventDefault();
       const appId = gameId(id.input.value);
       if (!appId) { setMessage(view.status, '请输入有效的游戏 ID 或 TapTap 链接。', true); return; }
-      if (!game && board.games.some(item => item.appId === appId)) { setMessage(view.status, '该游戏已经添加。', true); return; }
+      if (board.games.some(item => item.appId === appId)) { setMessage(view.status, '该游戏已经添加。', true); return; }
       view.submit.disabled = true;
-      const next = structuredClone(config);
-      const target = currentBoard(next);
-      const updated = { ...(game ?? {}), appId, name: name.input.value.trim(), iconUrl: logo.input.value.trim(), totalStartDate: start.input.value };
-      if (game) target.games = target.games.map(item => item.appId === game.appId ? updated : item); else target.games.push(updated);
-      if (select.value !== '__keep') target.authors.forEach(author => { author.gameIds = author.gameIds.filter(value => value !== appId); if (author.id === select.value) author.gameIds.push(appId); });
-      try { await save(next); showPanel(game ? '已保存' : '已添加，可手动采集更新收益'); }
-      catch (error) { if (!config) showLogin(error.message); else setMessage(view.status, error.message, true); }
-      finally { view.submit.disabled = false; }
-    });
-  }
-  function editAuthor(author) {
-    const board = currentBoard();
-    const view = editor(`${author ? '编辑作者' : '添加作者'} · ${board.name}`);
-    const name = field('昵称', author?.name ?? '', { required: true }); name.input.maxLength = 64;
-    const qq = field('QQ 号', author?.qq ?? '', { placeholder: '选填' }); qq.input.inputMode = 'numeric';
-    const avatar = field('头像链接', author?.avatarUrl ?? '', { type: 'url', placeholder: '留空使用 QQ 号头像' });
-    const tap = field('TapTap 主页', author?.tapUrl ?? '', { type: 'url', placeholder: '选填' });
-    view.fields.append(name.wrapper, qq.wrapper, avatar.wrapper, tap.wrapper);
-    const bindings = node('fieldset', 'bindings'); bindings.append(node('legend', '', '绑定游戏'));
-    const checkboxes = [];
-    for (const game of board.games) {
-      const label = node('label', 'binding-option'); const input = node('input'); input.type = 'checkbox'; input.value = game.appId; input.checked = author?.gameIds.includes(game.appId) ?? false;
-      label.append(input, node('span', '', game.name)); bindings.append(label); checkboxes.push(input);
-    }
-    if (!board.games.length) bindings.append(node('span', 'value-missing', '请先添加游戏'));
-    view.fields.append(bindings);
-    view.form.addEventListener('submit', async event => {
-      event.preventDefault(); view.submit.disabled = true;
-      const next = structuredClone(config);
-      const target = currentBoard(next);
-      const updated = { id: author?.id ?? `author-${crypto.randomUUID()}`, name: name.input.value.trim(), qq: qq.input.value.trim(), avatarUrl: avatar.input.value.trim(), tapUrl: tap.input.value.trim(), gameIds: checkboxes.filter(input => input.checked).map(input => input.value) };
-      if (author) target.authors = target.authors.map(item => item.id === author.id ? updated : item); else target.authors.push(updated);
-      try { await save(next); showPanel('已保存'); }
-      catch (error) { if (!config) showLogin(error.message); else setMessage(view.status, error.message, true); }
+      try {
+        if (metadata?.appId !== appId) {
+          const data = await api(`/api/admin/game?id=${appId}`);
+          if (gameId(id.input.value) !== appId || !dialog.contains(preview)) return;
+          metadata = data;
+          const text = node('div', 'admin-row-text'); text.append(node('strong', '', data.name), node('span', '', (data.authors ?? []).map(author => author.name).join(' / ')));
+          preview.replaceChildren(portrait(data.iconUrl, data.name, 'game-logo'), text); preview.hidden = false;
+          view.submit.textContent = '添加'; setMessage(view.status, '');
+          return;
+        }
+        const next = structuredClone(config);
+        currentBoard(next).games.push({appId, name: metadata.name, ...(metadata.iconUrl ? {iconUrl:metadata.iconUrl} : {}), totalStartDate:'2020-01-01'});
+        await save(next); showPanel('已添加，可手动采集更新收益');
+      } catch (error) { if (!config) showLogin(error.message); else setMessage(view.status, error.message, true); }
       finally { view.submit.disabled = false; }
     });
   }

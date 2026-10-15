@@ -30,10 +30,9 @@ test('旧单榜迁移到首页，热门榜为空；配置和静态快照使用�
   assert.deepEqual(doc.boards[1].games, []);
 });
 
-test('多榜允许同游戏和同作者 ID，但不允许跨榜绑定、重复路径、无首页和保留路径', () => {
+test('多榜允许同游戏，丢弃旧手动绑定，拒绝重复路径、无首页和保留路径', () => {
   assert.equal(normalizeConfig({ boards: [home, hot] }).boards.length, 2);
   for (const boards of [
-    [home, { ...hot, authors: [{ ...author, gameIds: ['2'] }] }],
     [home, { ...hot, slug: '' }], [home, { ...hot, id: 'home' }], [hot], [],
     [home, { ...hot, slug: 'api' }], [home, { ...hot, slug: 'data' }],
     [home, { ...hot, slug: '404' }], [home, { ...hot, slug: '../other' }],
@@ -42,19 +41,19 @@ test('多榜允许同游戏和同作者 ID，但不允许跨榜绑定、重复�
   for (const value of [{}, { revision: 1 }, { boards: null }]) assert.throws(() => normalizeConfig(value));
 });
 
-test('修改某榜的同名作者、累计日期、删游戏都不会影响另一个榜，新增榜不借用其他榜的历史', () => {
+test('官方资料跨榜复用，累计日期和收益各榜独立，旧手动作者不再覆盖官方', () => {
   const row = { ...game, authorIds: ['maker'], authorMode: 'manual', revenue: { yesterday: 3, month: 8, total: 20 }, history: [{ date: '2026-10-13', revenue: 3 }] };
   const snapshot = { schemaVersion: 2, generatedAt: '2026-10-14T03:00:00Z', asOf: '2026-10-13', boards: [{ ...home, games: [row] }, { ...hot, games: [{ ...row, revenue: { yesterday: 4, month: 9, total: 30 } }] }] };
   const config = normalizeConfig({ boards: [home, hot] });
   const unchanged = publicRanking(snapshot, config).boards[1];
-  config.boards[0].authors[0].name = '改过的群友作者';
+  assert.deepEqual(config.boards[0].authors, []);
   config.boards[0].games[0].totalStartDate = '2026-01-01';
   const changed = publicRanking(snapshot, config);
   assert.equal(changed.boards[0].games[0].revenue.total, null);
   assert.deepEqual(changed.boards[0].games[0].history, []);
-  assert.equal(changed.boards[0].authors[0].name, '改过的群友作者');
+  assert.deepEqual(changed.boards[0].authors, []);
   assert.deepEqual(changed.boards[1], unchanged);
-  assert.equal(changed.boards[1].authors[0].avatarUrl, 'https://q1.qlogo.cn/g?b=qq&nk=87654321&s=100');
+  assert.deepEqual(changed.boards[1].authors, []);
   config.boards[0].authors = [];
   assert.deepEqual(publicRanking(snapshot, config).boards[0].authors, []);
   config.boards[0].games = [];
@@ -63,4 +62,24 @@ test('修改某榜的同名作者、累计日期、删游戏都不会影响另�
   const third = publicRanking(snapshot, config).boards[2];
   assert.equal(third.games[0].status, 'pending');
   assert.equal(third.games[0].revenue.total, null);
+});
+
+test('同款游戏采用最新官方名称和制作人；新增榜借用资料且不借用收益', () => {
+  const author = {id:'tap-42',name:'新昵称',tapUrl:'https://www.taptap.cn/user/42'};
+  const row = {...game,name:'官方改名',authorMode:'auto',authorIds:['tap-42'],metadataUpdatedAt:'2026-10-15T00:00:00Z',revenue:{total:20}};
+  const snapshot = {boards:[{...home,authors:[author],games:[row]}]};
+  const data = publicRanking(snapshot,{boards:[home,hot]});
+  for (const board of data.boards) {
+    assert.equal(board.games[0].name,'官方改名'); assert.deepEqual(board.games[0].authorIds,['tap-42']); assert.equal(board.authors[0].name,'新昵称');
+  }
+  assert.equal(data.boards[1].games[0].revenue.total,null);
+});
+
+test('作者跨作品改名用最新官方资料，同一用户归并且工作室保持独立', () => {
+  const user={id:'tap-42',name:'旧昵称',tapUrl:'https://www.taptap.cn/user/42',metadataUpdatedAt:'2026-10-14T00:00:00Z'};
+  const studio={id:'studio-42',name:'同数字工作室',tapUrl:'https://www.taptap.cn/developer/42'};
+  const row={...game,authorMode:'auto',authorIds:['tap-42','studio-42']};
+  const snapshot={boards:[{...home,games:[row],authors:[{...user,name:'新昵称',metadataUpdatedAt:'2026-10-15T00:00:00Z'},studio]},{...hot,games:[row],authors:[user,studio]}]};
+  const result=publicRanking(snapshot,{boards:[home,hot]});
+  for(const board of result.boards) {assert.equal(board.authors.find(a=>a.id==='tap-42').name,'新昵称');assert.equal(board.authors.length,2);}
 });

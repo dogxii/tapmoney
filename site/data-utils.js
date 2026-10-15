@@ -12,7 +12,7 @@ export function chartSeries(history, mode, days, asOf) {
   let total = 0;
   const rows = [...history].sort((a, b) => a.date.localeCompare(b.date)).map(row => {
     total = Math.round((total + row.revenue) * 100) / 100;
-    return { date: row.date, revenue: mode === 'cumulative' ? total : row.revenue };
+    return { date: row.date, revenue: mode === 'cumulative' ? row.cumulativeRevenue ?? total : row.revenue };
   });
   if (!days || !asOf) return rows;
   const start = new Date(`${asOf}T12:00:00Z`);
@@ -52,9 +52,14 @@ function percent(current, baseline) {
 export function periodGrowth(game, metric, snapshot) {
   if (game.growth) return game.growth[metric] ?? null;
   const current = metricValue(game, metric, snapshot);
+  return percent(current, growthBaseline(game, metric, snapshot));
+}
+
+export function growthBaseline(game, metric, snapshot) {
+  if (game.growthBaseline) return game.growthBaseline[metric] ?? null;
+  const current = metricValue(game, metric, snapshot);
   if (current === null || !snapshot.asOf) return null;
-  if (metric === 'yesterday') return dailyGrowth(game.history ?? [], snapshot.asOf);
-  if (metric === 'total') return percent(current, previousValue(game, metric, snapshot));
+  if (metric !== 'month') return previousValue(game, metric, snapshot);
   // 本月与上月相同天数比较，完整的上月同期日报是必要条件。
   if (snapshot.asOf.slice(0, 7) !== snapshot.monthStart?.slice(0, 7)) return null;
   const previousMonth = new Date(`${snapshot.monthStart}T12:00:00Z`);
@@ -70,7 +75,7 @@ export function periodGrowth(game, metric, snapshot) {
     if (typeof amount !== 'number' || !Number.isFinite(amount)) return null;
     sum += amount;
   }
-  return percent(current, sum);
+  return sum;
 }
 
 export function previousValue(game, metric, snapshot) {
@@ -88,7 +93,8 @@ export function previousValue(game, metric, snapshot) {
 }
 
 export function rankingRows(games, metric, snapshot) {
-  const compare = (a, b) => b.amount - a.amount || a.game.appId.localeCompare(b.game.appId);
+  const id = game => game.appId ?? game.id;
+  const compare = (a, b) => b.amount - a.amount || id(a.game).localeCompare(id(b.game));
   const rows = games.map(game => ({ game, amount: metricValue(game, metric, snapshot), rank: null, movement: null, growth: periodGrowth(game, metric, snapshot) }));
   const eligible = rows.filter(row => row.amount !== null).sort(compare);
   eligible.forEach((row, index) => { row.rank = index + 1; });
@@ -96,8 +102,8 @@ export function rankingRows(games, metric, snapshot) {
   // 任一游戏缺少基准时不推算名次变化；使用相同的已收录游戏集合比较。
   if (previous.length && previous.every(row => row.amount !== null)) {
     previous.sort(compare);
-    const ranks = new Map(previous.map((row, index) => [row.game.appId, index + 1]));
-    eligible.forEach(row => { row.movement = ranks.get(row.game.appId) - row.rank; });
+    const ranks = new Map(previous.map((row, index) => [id(row.game), index + 1]));
+    eligible.forEach(row => { row.movement = ranks.get(id(row.game)) - row.rank; });
   }
-  return [...eligible, ...rows.filter(row => row.amount === null).sort((a, b) => a.game.appId.localeCompare(b.game.appId))];
+  return [...eligible, ...rows.filter(row => row.amount === null).sort((a, b) => id(a.game).localeCompare(id(b.game)))];
 }

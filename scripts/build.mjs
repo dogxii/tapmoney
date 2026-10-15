@@ -5,8 +5,9 @@ import { configSource } from '../shared/config.mjs';
 import { build as bundle } from 'esbuild';
 import { rankingSummary, gameDetails, summaryPath } from '../shared/public-data.mjs';
 import { boardsOf, boardPath } from '../shared/boards.mjs';
+import { authorDetails } from '../shared/authors.mjs';
 
-export async function build({ env, directory = path.join(ROOT, 'dist') } = {}) {
+export async function build({ env, snapshot, directory = path.join(ROOT, 'dist') } = {}) {
   env ??= await loadEnv();
   const adminEnabled = configSource(env) === 'cloud';
   const rankingUrl = env.TAPMONEY_DATA_URL || (adminEnabled ? '/api/ranking' : '/data/ranking.json');
@@ -39,11 +40,16 @@ export async function build({ env, directory = path.join(ROOT, 'dist') } = {}) {
   for (const item of appOutput.imports.filter(item => item.kind === 'import-statement' && !item.external)) html = html.replace('</head>', `  <link rel="modulepreload" href="/${path.relative(directory, item.path).split(path.sep).join('/')}">\n</head>`);
   await atomicWrite(path.join(directory, 'index.html'), html);
   for (const filename of await readdir(path.join(ROOT, 'site'))) if (/\.(js|css)$/.test(filename) && filename !== 'runtime.js') await rm(path.join(directory, filename));
-  const snapshot = await readJson(path.join(ROOT, 'site/data/ranking.json'), {games:[],authors:[]});
+  snapshot ??= await readJson(path.join(ROOT, 'site/data/ranking.json'), {games:[],authors:[]});
   snapshot.schemaVersion = 2; snapshot.boards = boardsOf(snapshot);
+  await atomicWrite(path.join(directory, 'data/ranking.json'), JSON.stringify(snapshot) + '\n');
   for (const board of snapshot.boards) {
     await atomicWrite(path.join(directory, summaryPath(boardPath(board))), JSON.stringify(rankingSummary(snapshot, boardPath(board))) + '\n');
     for (const game of board.games) if (game.status !== 'pending') await atomicWrite(path.join(directory, `data/games/${board.id}/${game.appId}.json`), JSON.stringify(gameDetails(snapshot, board.id, game.appId)) + '\n');
+    for (const author of board.authors) {
+      const detail = authorDetails(snapshot, board.id, author.id);
+      if (detail) await atomicWrite(path.join(directory, `data/authors/${board.id}/${author.id}.json`), JSON.stringify(detail) + '\n');
+    }
   }
   if (adminEnabled) {
     await bundle({ entryPoints: [path.join(ROOT, 'server/api.mjs')], bundle: true, format: 'esm', platform: 'browser', outfile: path.join(directory, '_worker.js'), minify: true });

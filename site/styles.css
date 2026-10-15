@@ -201,14 +201,22 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
 .admin-row-text strong { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-row-text > span { font-size: 10px; color: var(--muted); }
 .form-fields { display: grid; gap: 19px; }
-.lookup-field { position: relative; }
-.lookup-field input { padding-right: 43px; }
-.lookup-field .icon-button { position: absolute; right: 4px; bottom: 3px; }
-.bindings { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.bindings legend { padding: 0; margin-bottom: 10px; font-size: 11px; color: var(--muted); }
-.binding-option { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
-.binding-option input { accent-color: var(--ink); }
 .form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 24px; }
+
+#aggregate-group { display: inline-flex; align-items: center; gap: 10px; }
+.scope-note { margin: -8px 0 18px; font-size: 11px; color: var(--muted); line-height: 1.8; }
+.detail-dialog .scope-note { margin: 15px 0 0; }
+.author-portrait.avatar { width: 39px; height: 39px; font-size: 15px; }
+.author-works { margin-top: 25px; }
+.author-works h3 { margin: 0 0 12px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.author-work { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 12px 0; background: transparent; border: 0; border-top: 1px solid var(--line); color: var(--ink); text-align: left; }
+.author-work:hover { background: var(--hover); }
+.author-work .game-cell { min-width: 0; }
+.author-work .game-cell > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.author-work > .numeric { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+.game-preview { display: flex; align-items: center; gap: 12px; padding: 16px 0; }
+.admin-pagination { justify-content: flex-end; margin-top: 12px; }
+
 @media(max-width: 1000px) {
   .heading-label { gap: 10px; }
   .toolbar { gap: 12px; }
@@ -219,6 +227,7 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   .row-author .author-name { max-width: 90px; }
   .game-open { max-width: 165px; }
 }
+@media(max-width: 900px) { .heading { flex-wrap: wrap; gap: 18px; } .heading-tools { margin-left: auto; } }
 @media(max-width: 850px) { .heading .as-of { display: none; } }
 @media(max-width: 700px) {
   .shell { padding: 0 18px; }
@@ -229,15 +238,12 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   .admin-toolbar .secondary-button { padding: 6px 9px; }
   .heading { margin: 30px 0 20px; gap: 10px; }
   h1 { font-size: 21px; white-space: nowrap; }
-  .heading-tools { gap: 8px; }
+  .heading-tools { width: 100%; gap: 8px; }
+  .heading-tools .tools { width: 100%; gap: 8px; }
+  .view-tabs button { padding: 5px 10px; }
   .tools { gap: 4px; }
-  .search { width: 30px; height: 30px; border-color: transparent; padding: 7px; gap: 0; cursor: pointer; }
-  .search input { width: 0; opacity: 0; }
-  .search:focus-within { position: absolute; left: 0; right: 33px; width: auto; background: var(--surface); border-color: var(--focus); z-index: 2; gap: 8px; }
-  .search:focus-within input { width: 100%; opacity: 1; }
+  .search { flex: 1; width: auto; height: 32px; padding: 7px; }
   .tools > .icon-button { width: 27px; }
-  .author-filter { position: absolute; right: 0; top: 41px; }
-  .heading:has(.author-filter:not([hidden])) { margin-bottom: 51px; }
   .author-filter select { font-size: 11px; }
   .author-column { display: none; }
   .mobile-authors { display: flex; gap: 7px; flex-wrap: wrap; max-width: 150px; }
@@ -251,6 +257,7 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   .rank-column { width: 27px; padding-left: 14px; padding-right: 4px; }
   .game-column { min-width: 0; }
   .game-cell { gap: 9px; }
+  .author-portrait.avatar { width: 35px; height: 35px; }
   .game-logo { width: 35px; height: 35px; border-radius: 9px; }
   .game-name { font-size: 12px; }
   .game-open { max-width: 150px; }
@@ -266,7 +273,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   dialog { padding: 20px; max-height: calc(100dvh - 32px); }
   .dialog-header { margin-bottom: 23px; gap: 6px; }
   .detail-title { gap: 10px; }
-  .detail-heading h2 { font-size: 15px; }
   .detail-metrics { gap: 14px; padding-bottom: 23px; }
   .detail-metric { gap: 9px; }
   .detail-metric strong { font-size: 16px; letter-spacing: -.5px; }
@@ -286,6 +292,7 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   .chart-ranges button { padding: 5px 6px; }
   .detail-footer { padding-top: 15px; }
 }
+@media(max-width: 640px) { .heading-tools .author-filter { display: none; } }
 @media(max-width: 370px) {
   .shell { padding: 0 12px; }
   h1 { font-size: 20px; }

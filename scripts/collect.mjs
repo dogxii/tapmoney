@@ -61,9 +61,17 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
     await client.get('/api/user/v1/me');
   }
   const retained = new Map(publicRanking(previous, config).boards.map(board => [board.id, board]));
+  const metadataCache = {};
+  for (const board of retained.values()) {
+    const authors = new Map(board.authors.map(author => [author.id,author]));
+    for (const game of board.games) if (game.metadataUpdatedAt) metadataCache[game.appId] = {
+      appId:game.appId, name:game.name, iconUrl:game.iconUrl, media:game.media,
+      authors:game.authorIds.map(id=>authors.get(id)).filter(Boolean), fetchedAt:game.metadataUpdatedAt
+    };
+  }
   const boards = [];
   let succeeded = 0;
-  // 仅共用上游报表请求；榜单配置、作者和失败回退互不共用。
+  // 相同报表共用请求；收益区间和失败回退各榜独立。
   const reports = new Map();
   function query(method, ...args) {
     const key = JSON.stringify([method, ...args]);
@@ -75,18 +83,19 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
     const oldRows = new Map(kept.games.map(game => [game.appId, game]));
     const batch = board.games.filter(game => selected.has(`${board.id}:${game.appId}`));
     // 未轮到的游戏不请求资料页或收益接口。
-    const catalog = batch.length ? await catalogBuilder(batch, { now, authors: board.authors }) : { games: {}, authors: [] };
-    const profiles = new Map([...kept.authors, ...catalog.authors].map(author => [author.id, author]));
+    const catalog = batch.length ? await catalogBuilder(batch, { now, seed: metadataCache }) : { games: {}, authors: [] };
+    const profiles = new Map(kept.authors.map(author => [author.id, author]));
+    for (const author of catalog.authors) if (!profiles.has(author.id) || (author.metadataUpdatedAt ?? '') >= (profiles.get(author.id).metadataUpdatedAt ?? '')) profiles.set(author.id, author);
     const collected = await concurrentMap(batch, concurrency, async game => {
       const old = oldRows.get(game.appId);
       const metadata = catalog.games[game.appId];
       const base = {
-        appId: game.appId, name: game.name, url: `https://www.taptap.cn/app/${game.appId}`,
+        appId: game.appId, name: metadata?.name || old?.name || game.name, url: `https://www.taptap.cn/app/${game.appId}`,
         totalStartDate: game.totalStartDate,
         iconUrl: metadata?.iconUrl ?? old?.iconUrl ?? null,
-        iconSourceUrl: metadata?.iconSourceUrl ?? old?.iconSourceUrl ?? null,
         media: metadata?.media ?? old?.media ?? [],
         authorIds: metadata?.authorIds ?? old?.authorIds ?? [], authorMode: metadata?.authorMode ?? old?.authorMode ?? 'auto',
+        ...(metadata?.metadataUpdatedAt || old?.metadataUpdatedAt ? {metadataUpdatedAt: metadata?.metadataUpdatedAt ?? old.metadataUpdatedAt} : {}),
         lastAttemptAt: now.toISOString()
       };
       try {
@@ -125,7 +134,7 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
     });
     const used = new Set(rows.flatMap(game => game.authorIds));
     boards.push({ ...boardInfo(board), games: rows,
-      authors: [...profiles.values()].filter(author => used.has(author.id)).map(({ id, name, avatarUrl, avatarSourceUrl, tapUrl }) => ({ id, name, avatarUrl, avatarSourceUrl, tapUrl })) });
+      authors: [...profiles.values()].filter(author => used.has(author.id)).map(({ id, name, avatarUrl, tapUrl, metadataUpdatedAt }) => ({ id, name, avatarUrl, tapUrl, ...(metadataUpdatedAt ? {metadataUpdatedAt} : {}) })) });
   }
   const snapshot = {
     schemaVersion: 2, generatedAt: selected.size ? now.toISOString() : previous.generatedAt ?? now.toISOString(), asOf: dates.asOf, monthStart: dates.monthStart,

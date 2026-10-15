@@ -8,7 +8,8 @@
         {
           "appId": "959305",
           "name": "增量牧场",
-          "totalStartDate": "2020-01-01"
+          "totalStartDate": "2020-01-01",
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FuUsuclpmW7Xm-QqLh0wcG6sr4hK.png/_tap_appicon.jpg"
         },
         {
           "appId": "955186",
@@ -17,28 +18,7 @@
           "iconUrl": "https://img-tc.tapimg.com/market/images/FsnNdznzP1wjuRC7pI0kv4adut2t.png/_tap_appicon.jpg"
         }
       ],
-      "authors": [
-        {
-          "id": "tap-649821456",
-          "name": "好想成为人类啊",
-          "avatarUrl": "https://img3-tc.tapimg.com/avatars/etag/Fgz7GU_OAd1nUpigGF07Kf7A9EkI.png",
-          "tapUrl": "https://www.taptap.cn/user/649821456",
-          "gameIds": [
-            "959305"
-          ],
-          "qq": ""
-        },
-        {
-          "id": "author-ea3cdd0b-24dc-424e-aeda-3d9f54248d01",
-          "name": "豆腐脑",
-          "avatarUrl": null,
-          "tapUrl": "https://www.taptap.cn/user/58689469",
-          "gameIds": [
-            "955186"
-          ],
-          "qq": "394811161"
-        }
-      ]
+      "authors": []
     },
     {
       "id": "hot",
@@ -469,7 +449,7 @@
           "appId": "908200",
           "name": "摇转盘直到成为世界首富",
           "totalStartDate": "2020-01-01",
-          "iconUrl": "https://img-tc.tapimg.com/market/images/1f4b98a546943de348d85becdc6b7210.png/_tap_appicon.jpg"
+          "iconUrl": "https://img-tc.tapimg.com/market/images/cfd49dbe3d2978a1243266f3050c268a.png/_tap_appicon.jpg"
         },
         {
           "appId": "913692",
@@ -1085,9 +1065,9 @@
         },
         {
           "appId": "964519",
-          "name": "修仙家族模拟器",
+          "name": "修仙世家模拟：成就万古仙族",
           "totalStartDate": "2020-01-01",
-          "iconUrl": "https://img-tc.tapimg.com/market/images/e184f07c7a682cbfbdb105a951c05bdb.png/_tap_appicon.jpg"
+          "iconUrl": "https://img-tc.tapimg.com/market/images/d7ad05bdfe9c151157d1202af183bcd0.png/_tap_appicon.jpg"
         },
         {
           "appId": "967594",
@@ -1927,7 +1907,7 @@
           "appId": "937524",
           "name": "大明模拟器",
           "totalStartDate": "2020-01-01",
-          "iconUrl": "https://img-tc.tapimg.com/market/images/FoYiIQ-C-Qww-IY4vTd2N-3rNU_U.jpg/_tap_appicon.jpg"
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FgnUUbMxlskFSLjIbNxORRMApo1b.jpg/_tap_appicon.jpg"
         },
         {
           "appId": "967999",
@@ -2411,7 +2391,7 @@
         },
         {
           "appId": "894398",
-          "name": "收破烂不烧心！",
+          "name": "收破烂喽！",
           "totalStartDate": "2020-01-01",
           "iconUrl": "https://img-tc.tapimg.com/market/images/FmNj5sT7pitcqNAhzyqgimJbzrpf.png/_tap_appicon.jpg"
         },
@@ -2527,7 +2507,7 @@
           "appId": "857638",
           "name": "猫咖模拟器",
           "totalStartDate": "2020-01-01",
-          "iconUrl": "https://img-tc.tapimg.com/market/images/2e9df76993b35222d4ef61a5a38a7744.png/_tap_appicon.jpg"
+          "iconUrl": "https://img-tc.tapimg.com/market/images/FtU9zCSVnF4p1fP4AfIA_mll9Zhu.png/_tap_appicon.jpg"
         },
         {
           "appId": "948294",
@@ -3299,9 +3279,9 @@
         },
         {
           "appId": "871611",
-          "name": "全民神祇:掌中神国",
+          "name": "全民神邸：掌中神国",
           "totalStartDate": "2020-01-01",
-          "iconUrl": "https://img-tc.tapimg.com/market/images/FmKAiNp-0bi_J8gV7eYuIp7mOe-y.png/_tap_appicon.jpg"
+          "iconUrl": "https://img-tc.tapimg.com/market/images/9bb58fc64abc5b25e0bc4257747c4a8f.png/_tap_appicon.jpg"
         },
         {
           "appId": "911178",
@@ -7091,9 +7071,9 @@
         },
         {
           "appId": "902833",
-          "name": "星宠计划",
+          "name": "口袋宠物：水银",
           "totalStartDate": "2020-01-01",
-          "iconUrl": "https://img-tc.tapimg.com/market/images/Fj_DorBMil3VfauXjxa1RTUhWTN4.png/_tap_appicon.jpg"
+          "iconUrl": "https://img-tc.tapimg.com/market/images/Fn1t-r2rLXQ_3C5gVonjUq74ivI_.jpg/_tap_appicon.jpg"
         },
         {
           "appId": "889760",
@@ -12463,7 +12443,7 @@
           "appId": "952495",
           "name": "妄清朝野：兵粮征伐",
           "totalStartDate": "2020-01-01",
-          "iconUrl": "https://img-tc.tapimg.com/market/images/FkSmTG1WPXEz8m9lH8Fmtw4fTR7N.png/_tap_appicon.jpg"
+          "iconUrl": "https://img-tc.tapimg.com/market/images/Fpn_jJJJQxPw-0xBdpwlwCcG3oTe.png/_tap_appicon.jpg"
         },
         {
           "appId": "940918",

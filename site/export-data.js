@@ -18,8 +18,8 @@ function csvCell(value) {
   return `"${text.replaceAll('"', '""')}"`;
 }
 
-export function rankingCsv(rows, snapshot, metric, profiles) {
-  const list = [['排名', '游戏 ID', '游戏', '作者', `${metricLabels[metric]}广告收益(CNY)`, '增长(%)', '统计日期', '统计起始日期']];
-  for (const row of rows) list.push([row.rank ?? '', row.game.appId, row.game.name, (row.game.authorIds ?? []).map(id => profiles.get(id)?.name).filter(Boolean).join(' / '), row.amount ?? '', row.growth === null ? '' : Number(row.growth.toFixed(1)), row.game.asOf ?? '', metric === 'month' ? row.game.monthStart : metric === 'total' ? row.game.totalStartDate : row.game.asOf]);
+export function rankingCsv(rows, snapshot, metric, profiles, authorView = false) {
+  const list = [['排名', authorView ? '作者 ID' : '游戏 ID', authorView ? '作者' : '游戏', authorView ? '作品数' : '作者', `${metricLabels[metric]}广告收益(CNY)`, '增长(%)', '统计日期', '统计起始日期']];
+  for (const row of rows) list.push([row.rank ?? '', row.game.appId ?? row.game.id, row.game.name, authorView ? row.game.gameCount : (row.game.authorIds ?? []).map(id => profiles.get(id)?.name).filter(Boolean).join(' / '), row.amount ?? '', row.growth === null ? '' : Number(row.growth.toFixed(1)), row.game.asOf ?? '', metric === 'month' ? row.game.monthStart : metric === 'total' ? row.game.totalStartDate : row.game.asOf]);
   return '\ufeff' + list.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
