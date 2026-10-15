@@ -1,7 +1,7 @@
 import { boardsOf, boardInfo } from './boards.mjs';
 
 // 每次只传一小份完整记录，Worker 无须同时解析、清洗整份历史快照。
-export function snapshotTransfer(snapshot, targetBytes = 512 * 1024) {
+export function snapshotTransfer(snapshot, targetBytes = 256 * 1024) {
   const encoder = new TextEncoder(), parts = [];
   const boards = boardsOf(snapshot).map(board => {
     const chunks = []; let chunk = { games: [], authors: [] }, bytes = 26;

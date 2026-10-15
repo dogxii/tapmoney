@@ -38,7 +38,8 @@ function publicBoard(snapshot, config, metadata, profiles) {
       updatedAt: saved?.updatedAt ?? null,
       ...(saved?.lastAttemptAt ? { lastAttemptAt: saved.lastAttemptAt } : {}),
       revenue: { yesterday: saved?.revenue?.yesterday ?? null, month: saved?.revenue?.month ?? null, total: matchingRange ? saved?.revenue?.total ?? null : null },
-      history: matchingRange ? saved?.history ?? [] : []
+      history: matchingRange ? saved?.history ?? [] : [],
+      ...(matchingRange && saved?.previousRevenue ? {previousRevenue:saved.previousRevenue,growthBaseline:saved.growthBaseline} : {})
     };
   });
   const used = new Set(games.flatMap(game => game.authorIds));

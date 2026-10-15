@@ -7,6 +7,7 @@ import { publicRanking } from '../shared/snapshot.mjs';
 import { rankingSummary, gameDetails } from '../shared/public-data.mjs';
 import { authorDetails } from '../shared/authors.mjs';
 import { cachedPublic } from './public-cache.mjs';
+import { previousValue, growthBaseline } from '../site/data-utils.js';
 export { publicRanking } from '../shared/snapshot.mjs';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -77,15 +78,15 @@ async function readBody(request, limit = 1024 * 1024) {
   try { return JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new Error('请求需要有效 JSON。'); }
 }
 
-async function document(db, key) {
+async function document(db, key, projection) {
   // 小文档和旧版分片一次读取；大文档按清单中的固定版本分批读取。
   const { results } = await db.prepare('SELECT key, body, revision FROM documents WHERE key = ? OR (key >= ? AND key < ?)').bind(key, `${key}:`, `${key};`).all();
   const row = results.find(row => row.key === key);
   if (!row) return null;
-  return { ...await readDocumentValue(db, row, results), revision: row.revision };
+  return { ...await readDocumentValue(db, row, results, projection), revision: row.revision };
 }
 
-async function readDocumentValue(db, row, results) {
+async function readDocumentValue(db, row, results, projection) {
   const manifest = JSON.parse(row.body);
   if (manifest.format === 'board-parts-v1') {
     const snapshot = manifest.snapshot;
@@ -94,7 +95,16 @@ async function readDocumentValue(db, row, results) {
       const value = { ...boardInfo(board), games: [], authors: [] };
       for (let start = 0; start < board.parts; start += 4) {
         const keys = Array.from({ length: Math.min(4, board.parts - start) }, (_, offset) => `${manifest.prefix}:${board.id}:${start + offset}`);
-        const { results } = await db.prepare(`SELECT key, body FROM documents WHERE key IN (${keys.map(() => '?').join(',')})`).bind(...keys).all();
+        let body = 'body', parameters = [];
+        const compact = "(SELECT json_group_array(json_remove(value, '$.history', '$.media')) FROM json_each(documents.body, '$.games'))";
+        if (projection === 'metadata') body = `json_object('games', json(COALESCE(json_extract(body, '$.summaryGames'), ${compact})), 'authors', json_extract(body, '$.authors'))`;
+        else if (projection?.summary) body = "CASE WHEN json_type(body, '$.summaryGames') = 'array' THEN json_object('games', json_extract(body, '$.summaryGames'), 'authors', json_extract(body, '$.authors')) ELSE body END";
+        else if (projection?.board) {
+          const match = projection.game ? "json_extract(game.value, '$.appId') = ?" : "EXISTS (SELECT 1 FROM json_each(game.value, '$.authorIds') WHERE value = ?)";
+          parameters.push(projection.game ?? projection.author);
+          body = `json_object('games', json((SELECT json_group_array(json(CASE WHEN ${match} THEN game.value ELSE json_remove(game.value, '$.history', '$.media') END)) FROM json_each(documents.body, '$.games') AS game)), 'authors', json_extract(body, '$.authors'))`;
+        }
+        const { results } = await db.prepare(`SELECT key, ${body} AS body FROM documents WHERE key IN (${keys.map(() => '?').join(',')})`).bind(...parameters, ...keys).all();
         if (results.length !== keys.length) throw new Error('快照分片缺失。');
         const byKey = new Map(results.map(row => [row.key, row.body]));
         for (const key of keys) {
@@ -199,7 +209,14 @@ async function snapshotUpload(request, env, url) {
     const part = Number(url.searchParams.get('part'));
     if (!board || !url.searchParams.has('part') || !Number.isInteger(part) || part < 0 || part >= board.parts) return json({ error: '上传分片无效。' }, 400);
     const value = cleanBoard(await readBody(request, 2 * 1024 * 1024), manifest.snapshot.asOf);
-    const body = JSON.stringify(value), now = new Date().toISOString();
+    // 上传时按小批次计算基准；排行榜和管理页读取时不再取回历史日报。
+    const metrics = ['yesterday', 'month', 'total'];
+    const summaryGames = value.games.map(game => {
+      const { history, media, ...compact } = game;
+      return { ...compact, previousRevenue: Object.fromEntries(metrics.map(key => [key, previousValue(game, key, manifest.snapshot)])),
+        growthBaseline: Object.fromEntries(metrics.map(key => [key, growthBaseline(game, key, manifest.snapshot)])) };
+    });
+    const body = JSON.stringify({ ...value, summaryGames }), now = new Date().toISOString();
     if (new TextEncoder().encode(body).length > 1900000) throw new Error('单个分片过大。');
     const saved = await env.DB.prepare('INSERT INTO documents (key, body, updated_at) SELECT ?, ?, ? WHERE EXISTS (SELECT 1 FROM documents WHERE key = ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at WHERE EXISTS (SELECT 1 FROM documents WHERE key = ?)').bind(`${prefix}:${board.id}:${part}`, body, now, `${prefix}:upload`, `${prefix}:upload`).run();
     if (saved.meta.changes !== 1) return json({ error: '上传已结束，不能再修改已发布分片。' }, 409);
@@ -228,8 +245,8 @@ async function snapshotUpload(request, env, url) {
   return json({ ok: true });
 }
 
-async function publicData(env, request) {
-  const [config, stored] = await Promise.all([document(env.DB, 'config'), document(env.DB, 'snapshot')]);
+async function publicData(env, request, projection) {
+  const [config, stored] = await Promise.all([document(env.DB, 'config'), document(env.DB, 'snapshot', projection)]);
   let snapshot = stored;
   if (!snapshot) {
     const response = await env.ASSETS.fetch(new Request(new URL('/data/ranking.json', request.url)));
@@ -241,7 +258,7 @@ async function publicData(env, request) {
   return { data, version: `${config?.revision ?? 0}:${stored?.revision ?? 0}`, stored: Boolean(stored) };
 }
 
-async function projectedData(env, request, key, select, context) {
+async function projectedData(env, request, key, select, context, projection) {
   // 版本号和摘要在一次查询中读取；命中后不读取整份收益历史。
   const { results } = await env.DB.prepare("SELECT key, CASE WHEN key IN ('config', 'snapshot') THEN NULL ELSE body END AS body, revision FROM documents WHERE key IN ('config', 'snapshot', ?) OR (key >= ? AND key < ?)").bind(key, `${key}:`, `${key};`).all();
   const version = ['config', 'snapshot'].map(key => results.find(row => row.key === key)?.revision ?? 0).join(':');
@@ -250,7 +267,7 @@ async function projectedData(env, request, key, select, context) {
     const value = await readDocumentValue(env.DB, root, results);
     if (value.version === version) return value.data;
   }
-  const source = await publicData(env, request);
+  const source = await publicData(env, request, projection);
   const data = select(source.data);
   if (source.stored && data) {
     const saved = saveDocument(env.DB, key, { version: source.version, data }).catch(() => {});
@@ -262,7 +279,7 @@ async function projectedData(env, request, key, select, context) {
 async function officialMetadata(env, id) {
   const cached = await document(env.DB, `catalog:${id}`);
   if (cached?.name && Date.now() - Date.parse(cached.fetchedAt) < 7 * 86400000) return cached;
-  const stored = await document(env.DB, 'snapshot');
+  const stored = await document(env.DB, 'snapshot', 'metadata');
   const saved = boardsOf(stored ?? {}).flatMap(board => board.games).find(game => game.appId === id && game.metadataUpdatedAt && Date.now() - Date.parse(game.metadataUpdatedAt) < 7 * 86400000);
   if (saved) return { appId: id, name: saved.name, iconUrl: saved.iconUrl };
   const response = await fetch(`https://www.taptap.cn/app/${id}`, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) });
@@ -301,7 +318,7 @@ async function handle(request, env, context) {
   }
   if (route === '/api/internal/snapshot/upload' || route.startsWith('/api/internal/snapshot/upload/')) return snapshotUpload(request, env, url);
   if (route === '/api/admin/config' && request.method === 'GET') {
-    const [saved, snapshot] = await Promise.all([document(env.DB, 'config'), document(env.DB, 'snapshot')]);
+    const [saved, snapshot] = await Promise.all([document(env.DB, 'config'), document(env.DB, 'snapshot', 'metadata')]);
     return json({ ...configHints(normalizeConfig(saved ?? { games: [], authors: [] }), snapshot), revision: saved?.revision ?? 0 });
   }
   if (route === '/api/admin/collect' && ['GET', 'POST'].includes(request.method)) {
@@ -318,7 +335,7 @@ async function handle(request, env, context) {
     const config = normalizeConfig(input);
     const current = await document(env.DB, 'config');
     if ((current?.revision ?? 0) !== input.revision) return json({error:'配置已被其他会话修改，请重新加载后保存。'},409);
-    const previous = configHints(normalizeConfig(current ?? {games:[],authors:[]}), await document(env.DB, 'snapshot'));
+    const previous = configHints(normalizeConfig(current ?? {games:[],authors:[]}), await document(env.DB, 'snapshot', 'metadata'));
     const known = new Map(previous.boards.flatMap(board => board.games).map(game => [game.appId,game]));
     const previousBoards = new Map(previous.boards.map(board => [board.id, new Map(board.games.map(game => [game.appId,game]))]));
     for (const board of config.boards) for (let index = 0; index < board.games.length; index++) {
@@ -357,7 +374,7 @@ async function handle(request, env, context) {
     const key = view ? `/api/ranking?view=summary&path=${encodeURIComponent(pathname)}&format=authors-v1` : '/api/ranking';
     return cachedPublic(request, key, async () => {
       if (!view) return json((await publicData(env, request)).data);
-      const data = await projectedData(env, request, `public:summary:authors-v1:${pathname}`, data => boardAtPath(data.boards, pathname) ? rankingSummary(data, pathname) : null, context);
+      const data = await projectedData(env, request, `public:summary:authors-v1:${pathname}`, data => boardAtPath(data.boards, pathname) ? rankingSummary(data, pathname) : null, context, {summary:true});
       return data ? json(data) : json({ error: '榜单不存在。' }, 404);
     }, context);
   }
@@ -365,7 +382,7 @@ async function handle(request, env, context) {
     const board = url.searchParams.get('board'), id = url.searchParams.get('id');
     if (!/^[\w-]{1,64}$/.test(board ?? '') || !/^\d{1,16}$/.test(id ?? '')) return json({ error: '游戏或榜单 ID 无效。' }, 400);
     return cachedPublic(request, `/api/game?board=${board}&id=${id}`, async () => {
-      const detail = await projectedData(env, request, `public:game:${board}:${id}`, data => gameDetails(data, board, id), context);
+      const detail = await projectedData(env, request, `public:game:${board}:${id}`, data => gameDetails(data, board, id), context, {board,game:id});
       return detail ? json(detail) : json({ error: '游戏不存在。' }, 404);
     }, context);
   }
@@ -373,7 +390,7 @@ async function handle(request, env, context) {
     const board = url.searchParams.get('board'), id = url.searchParams.get('id');
     if (!/^[\w-]{1,64}$/.test(board ?? '') || !/^(?:tap|studio)-\d{1,16}$/.test(id ?? '')) return json({error:'作者或榜单 ID 无效。'},400);
     return cachedPublic(request, `/api/author?board=${board}&id=${id}`, async () => {
-      const detail = await projectedData(env, request, `public:author:${board}:${id}`, data => authorDetails(data, board, id), context);
+      const detail = await projectedData(env, request, `public:author:${board}:${id}`, data => authorDetails(data, board, id), context, {board,author:id});
       return detail ? json(detail) : json({error:'作者不存在。'},404);
     }, context);
   }

@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import worker, { tokenHash, publicRanking } from '../server/api.mjs';
 import { normalizeConfig } from '../shared/catalog.mjs';
 import { snapshotTransfer } from '../shared/snapshot-transfer.mjs';
+import { rankingSummary } from '../shared/public-data.mjs';
 
 const token = 'local-test-token-with-32-characters-fixture';
 const game = { appId: '959305', name: '增量牧场', totalStartDate: '2020-01-01' };
@@ -319,7 +320,7 @@ test('小批上传只在完整校验后发布，失败可续传，跨片重复�
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:original}),env)).status,200);
   const before=await (await worker.fetch(request('/api/ranking'),env)).json();
   const author={id:'tap-1',name:'作者',tapUrl:'https://www.taptap.cn/user/1',qq:'123456',secret:'must-not-leak'};
-  const snapshot={...original,boards:[{id:'home',slug:'',name:'群友榜',authors:[author],games:[{...game,authorIds:[author.id],status:'ok',asOf:original.asOf,monthStart:original.monthStart,secret:'must-not-leak',queryDeveloperId:'123',revenue:{yesterday:1,month:2,total:3},history:[{date:original.asOf,revenue:1}]}]}]};
+  const snapshot={...original,boards:[{id:'home',slug:'',name:'群友榜',authors:[author],games:[{...game,authorIds:[author.id],status:'ok',asOf:original.asOf,monthStart:original.monthStart,secret:'must-not-leak',queryDeveloperId:'123',revenue:{yesterday:1,month:2,total:3},history:[{date:'2026-10-12',revenue:0.5},{date:original.asOf,revenue:1}]}]}]};
   const {metadata,parts}=snapshotTransfer(snapshot,1);
   assert.equal(parts.length,2);
   const start=await worker.fetch(request('/api/internal/snapshot/upload',{method:'POST',body:metadata,authorized:false}),env);
@@ -348,6 +349,13 @@ test('小批上传只在完整校验后发布，失败可续传，跨片重复�
   assert.deepEqual(saved.boards[0].games[0].history,snapshot.boards[0].games[0].history);
   assert.ok(!JSON.stringify(saved).includes('must-not-leak'));
   assert.ok(!('qq' in saved.boards[0].authors[0]));
+  const summary=await (await worker.fetch(request('/api/ranking?view=summary&path=%2F'),env)).json();
+  assert.deepEqual(summary,rankingSummary(saved,'/'));
+  assert.equal(summary.boards[0].games[0].growth.yesterday,100);
+  const detail=await (await worker.fetch(request('/api/game?board=home&id='+game.appId),env)).json();
+  assert.deepEqual(detail.game.history,saved.boards[0].games[0].history);
+  const authorDetail=await (await worker.fetch(request('/api/author?board=home&id=tap-1'),env)).json();
+  assert.equal(authorDetail.author.history.length,2);
   assert.equal((await put(base,parts[0])).status,409);
   for(const part of parts) assert.equal((await put(staleBase,part)).status,200);
   assert.equal((await worker.fetch(request(staleBase,{method:'POST',body:{}}),env)).status,409);
