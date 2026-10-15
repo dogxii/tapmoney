@@ -2,6 +2,7 @@ import path from 'node:path';
 import { ROOT, loadEnv, readJson, atomicWrite, isMain, printError } from './lib.mjs';
 import { normalizeConfig } from '../shared/catalog.mjs';
 import { loadConfig } from './config.mjs';
+import { snapshotTransfer } from '../shared/snapshot-transfer.mjs';
 
 export async function adminRequest(route, { env, method = 'GET', body } = {}) {
   env ??= await loadEnv();
@@ -29,7 +30,12 @@ export async function remoteConfig(env) {
 
 export async function uploadSnapshot(env) {
   const data = await readJson(path.join(ROOT, 'site/data/ranking.json'));
-  await adminRequest('/api/internal/snapshot', { env, method: 'PUT', body: data });
+  const { metadata, parts } = snapshotTransfer(data);
+  const { uploadId } = await adminRequest('/api/internal/snapshot/upload', { env, method: 'POST', body: metadata });
+  for (const { board, part, body } of parts) {
+    await adminRequest(`/api/internal/snapshot/upload/${uploadId}?board=${board}&part=${part}`, { env, method: 'PUT', body });
+  }
+  await adminRequest(`/api/internal/snapshot/upload/${uploadId}`, { env, method: 'POST', body: {} });
   console.log('已同步云端收益数据。');
 }
 

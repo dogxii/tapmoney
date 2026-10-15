@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFile } from 'node:fs/promises';
 import worker, { tokenHash, publicRanking } from '../server/api.mjs';
 import { normalizeConfig } from '../shared/catalog.mjs';
+import { snapshotTransfer } from '../shared/snapshot-transfer.mjs';
 
 const token = 'local-test-token-with-32-characters-fixture';
 const game = { appId: '959305', name: '增量牧场', totalStartDate: '2020-01-01' };
@@ -307,6 +308,52 @@ test('旧版事务分片快照保持兼容，缩小文档时清除旧分片', as
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:smaller}),env)).status,200);
   assert.equal(sqlite.prepare("SELECT count(*) AS count FROM documents WHERE key LIKE 'snapshot:%'").get().count,0);
   assert.equal((await (await worker.fetch(request('/api/ranking'),env)).json()).boards[0].games.length,0);
+});
+
+test('小批上传只在完整校验后发布，失败可续传，跨片重复身份被拒绝，已发布分片不能修改', async t => {
+  const {env,sqlite}=await fixture(t);
+  const original={schemaVersion:1,generatedAt:'2026-10-14T03:00:00Z',asOf:'2026-10-13',monthStart:'2026-10-01',games:[],authors:[]};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:original}),env)).status,200);
+  const before=await (await worker.fetch(request('/api/ranking'),env)).json();
+  const author={id:'tap-1',name:'作者',tapUrl:'https://www.taptap.cn/user/1',qq:'123456',secret:'must-not-leak'};
+  const snapshot={...original,boards:[{id:'home',slug:'',name:'群友榜',authors:[author],games:[{...game,authorIds:[author.id],status:'ok',asOf:original.asOf,monthStart:original.monthStart,secret:'must-not-leak',queryDeveloperId:'123',revenue:{yesterday:1,month:2,total:3},history:[{date:original.asOf,revenue:1}]}]}]};
+  const {metadata,parts}=snapshotTransfer(snapshot,1);
+  assert.equal(parts.length,2);
+  const start=await worker.fetch(request('/api/internal/snapshot/upload',{method:'POST',body:metadata,authorized:false}),env);
+  assert.equal(start.status,401);
+  const begin=async metadata=>{
+    const response=await worker.fetch(request('/api/internal/snapshot/upload',{method:'POST',body:metadata}),env);
+    assert.equal(response.status,200);
+    return '/api/internal/snapshot/upload/'+(await response.json()).uploadId;
+  };
+  const base=await begin(metadata);
+  const staleBase=await begin(metadata);
+  const put=async (base,part)=>worker.fetch(request(`${base}?board=${part.board}&part=${part.part}`,{method:'PUT',body:part.body}),env);
+  assert.equal((await put(base,parts[0])).status,200);
+  assert.equal((await worker.fetch(request(base,{method:'POST',body:{}}),env)).status,409);
+  assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),before);
+  assert.equal((await put(base,parts[1])).status,200);
+  // 分片请求可安全重试，不能产生多份记录。
+  assert.equal((await put(base,parts[1])).status,200);
+  sqlite.exec("CREATE TRIGGER fail_snapshot BEFORE UPDATE ON documents WHEN NEW.key='snapshot' BEGIN SELECT RAISE(ABORT,'模拟发布失败'); END");
+  assert.equal((await worker.fetch(request(base,{method:'POST',body:{}}),env)).status,400);
+  assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),before);
+  sqlite.exec('DROP TRIGGER fail_snapshot');
+  assert.equal((await worker.fetch(request(base,{method:'POST',body:{}}),env)).status,200);
+  const saved=await (await worker.fetch(request('/api/ranking'),env)).json();
+  assert.equal(saved.boards[0].games[0].revenue.total,3);
+  assert.deepEqual(saved.boards[0].games[0].history,snapshot.boards[0].games[0].history);
+  assert.ok(!JSON.stringify(saved).includes('must-not-leak'));
+  assert.ok(!('qq' in saved.boards[0].authors[0]));
+  assert.equal((await put(base,parts[0])).status,409);
+  for(const part of parts) assert.equal((await put(staleBase,part)).status,200);
+  assert.equal((await worker.fetch(request(staleBase,{method:'POST',body:{}}),env)).status,409);
+  assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),saved);
+  const duplicate={...snapshot,boards:[{...snapshot.boards[0],games:[...snapshot.boards[0].games,...snapshot.boards[0].games]}]};
+  const transfer=snapshotTransfer(duplicate,1), duplicateBase=await begin(transfer.metadata);
+  for(const part of transfer.parts) assert.equal((await put(duplicateBase,part)).status,200);
+  assert.equal((await worker.fetch(request(duplicateBase,{method:'POST',body:{}}),env)).status,400);
+  assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),saved);
 });
 
 test('公开摘要和游戏详情独立加载，摘要缓存不重读完整快照，配置和快照变化均使摘要失效', async t => {

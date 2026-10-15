@@ -87,6 +87,25 @@ async function document(db, key) {
 
 async function readDocumentValue(db, row, results) {
   const manifest = JSON.parse(row.body);
+  if (manifest.format === 'board-parts-v1') {
+    const snapshot = manifest.snapshot;
+    snapshot.boards = [];
+    for (const board of manifest.boards) {
+      const value = { ...boardInfo(board), games: [], authors: [] };
+      for (let start = 0; start < board.parts; start += 4) {
+        const keys = Array.from({ length: Math.min(4, board.parts - start) }, (_, offset) => `${manifest.prefix}:${board.id}:${start + offset}`);
+        const { results } = await db.prepare(`SELECT key, body FROM documents WHERE key IN (${keys.map(() => '?').join(',')})`).bind(...keys).all();
+        if (results.length !== keys.length) throw new Error('快照分片缺失。');
+        const byKey = new Map(results.map(row => [row.key, row.body]));
+        for (const key of keys) {
+          const part = JSON.parse(byKey.get(key));
+          value.games.push(...part.games); value.authors.push(...part.authors);
+        }
+      }
+      snapshot.boards.push(value);
+    }
+    return snapshot;
+  }
   if (manifest.format === 'chunked-json-v2') {
     results = [...results];
     for (let start = 0; start < manifest.parts; start += 4) {
@@ -149,6 +168,64 @@ async function saveDocument(db, key, snapshot) {
     if (prefix) await db.prepare("DELETE FROM documents WHERE key GLOB ? AND (SELECT json_extract(body, '$.prefix') FROM documents WHERE key = ?) IS NOT ?").bind(`${prefix}:*`, key, prefix).run().catch(() => {});
     throw error;
   }
+}
+
+async function snapshotUpload(request, env, url) {
+  const base = '/api/internal/snapshot/upload';
+  if (url.pathname === base && request.method === 'POST') {
+    const input = await readBody(request);
+    const snapshot = cleanSnapshot({ ...input, boards: input.boards?.map(board => ({ ...board, games: [], authors: [] })) });
+    const boards = snapshot.boards.map((board, index) => {
+      const { parts, gameCount, authorCount } = input.boards[index];
+      if (!Number.isInteger(parts) || parts < 1 || parts > 1000 || !Number.isInteger(gameCount) || gameCount < 0 || gameCount > 5000 || !Number.isInteger(authorCount) || authorCount < 0 || authorCount > 10000) throw new Error('上传分片信息无效。');
+      return { ...boardInfo(board), parts, gameCount, authorCount };
+    });
+    const uploadId = crypto.randomUUID(), now = new Date().toISOString();
+    delete snapshot.boards;
+    const current = await env.DB.prepare("SELECT revision FROM documents WHERE key = 'snapshot'").first();
+    const manifest = { format: 'board-parts-v1', prefix: `parts:snapshot:${uploadId}`, snapshot, boards, createdAt: now, baseRevision: current?.revision ?? 0 };
+    await env.DB.prepare('INSERT INTO documents (key, body, updated_at) VALUES (?, ?, ?)').bind(`${manifest.prefix}:upload`, JSON.stringify(manifest), now).run();
+    return json({ uploadId });
+  }
+  const uploadId = url.pathname.slice(base.length + 1);
+  if (!/^[a-f0-9-]{36}$/.test(uploadId) || !['PUT', 'POST'].includes(request.method)) return json({ error: '上传地址无效。' }, 400);
+  const prefix = `parts:snapshot:${uploadId}`;
+  const row = await env.DB.prepare('SELECT body FROM documents WHERE key = ?').bind(`${prefix}:upload`).first();
+  if (!row) return json({ error: '上传不存在或已结束。' }, 409);
+  const manifest = JSON.parse(row.body);
+  if (Date.now() - Date.parse(manifest.createdAt) > 1800000) return json({ error: '上传已过期，请重新同步。' }, 409);
+  if (request.method === 'PUT') {
+    const board = manifest.boards.find(board => board.id === url.searchParams.get('board'));
+    const part = Number(url.searchParams.get('part'));
+    if (!board || !url.searchParams.has('part') || !Number.isInteger(part) || part < 0 || part >= board.parts) return json({ error: '上传分片无效。' }, 400);
+    const value = cleanBoard(await readBody(request, 2 * 1024 * 1024), manifest.snapshot.asOf);
+    const body = JSON.stringify(value), now = new Date().toISOString();
+    if (new TextEncoder().encode(body).length > 1900000) throw new Error('单个分片过大。');
+    const saved = await env.DB.prepare('INSERT INTO documents (key, body, updated_at) SELECT ?, ?, ? WHERE EXISTS (SELECT 1 FROM documents WHERE key = ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at WHERE EXISTS (SELECT 1 FROM documents WHERE key = ?)').bind(`${prefix}:${board.id}:${part}`, body, now, `${prefix}:upload`, `${prefix}:upload`).run();
+    if (saved.meta.changes !== 1) return json({ error: '上传已结束，不能再修改已发布分片。' }, 409);
+    return json({ ok: true });
+  }
+  // 只在 SQLite 中统计记录与身份，不把整份历史取回 Worker 校验。
+  for (const board of manifest.boards) {
+    const pattern = `${prefix}:${board.id}:*`;
+    const parts = await env.DB.prepare('SELECT count(*) AS count FROM documents WHERE key GLOB ?').bind(pattern).first();
+    if (parts.count !== board.parts) return json({ error: '上传尚未完成，旧快照继续生效。' }, 409);
+    for (const [field, id, expected] of [['games', 'appId', board.gameCount], ['authors', 'id', board.authorCount]]) {
+      const counts = await env.DB.prepare(`SELECT count(*) AS count, count(DISTINCT json_extract(item.value, '$.${id}')) AS uniqueCount FROM documents, json_each(documents.body, '$.${field}') AS item WHERE documents.key GLOB ?`).bind(pattern).first();
+      if (counts.count !== expected || counts.uniqueCount !== expected) return json({ error: '上传记录缺失或身份重复。' }, 400);
+    }
+  }
+  const previous = await env.DB.prepare("SELECT body FROM documents WHERE key = 'snapshot'").first();
+  const oldPrefix = previous ? JSON.parse(previous.body).prefix : null, now = new Date().toISOString();
+  const statements = [
+    env.DB.prepare("INSERT INTO documents (key, body, revision, updated_at) SELECT 'snapshot', ?, 1, ? WHERE EXISTS (SELECT 1 FROM documents WHERE key = ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, revision = documents.revision + 1, updated_at = excluded.updated_at WHERE documents.revision = ?").bind(JSON.stringify(manifest), now, `${prefix}:upload`, manifest.baseRevision),
+    env.DB.prepare("DELETE FROM documents WHERE key GLOB 'snapshot:*' OR key = ?").bind(`${prefix}:upload`)
+  ];
+  if (oldPrefix) statements.push(env.DB.prepare('UPDATE documents SET updated_at = ? WHERE key GLOB ?').bind(now, `${oldPrefix}:*`));
+  statements.push(env.DB.prepare("DELETE FROM documents WHERE key GLOB 'parts:snapshot:*' AND updated_at < ? AND key NOT GLOB ?").bind(new Date(Date.now() - 1800000).toISOString(), `${prefix}:*`));
+  const result = await env.DB.batch(statements);
+  if (result[0].meta.changes !== 1) return json({ error: '快照已更新，请重新同步当前数据。' }, 409);
+  return json({ ok: true });
 }
 
 async function publicData(env, request) {
@@ -222,6 +299,7 @@ async function handle(request, env, context) {
     if (origin && origin !== url.origin) return json({ error: '请求来源无效。' }, 403);
     if (!await authenticated(request, env.ADMIN_TOKEN_HASH)) return json({ error: '管理 Token 无效。' }, 401);
   }
+  if (route === '/api/internal/snapshot/upload' || route.startsWith('/api/internal/snapshot/upload/')) return snapshotUpload(request, env, url);
   if (route === '/api/admin/config' && request.method === 'GET') {
     const [saved, snapshot] = await Promise.all([document(env.DB, 'config'), document(env.DB, 'snapshot')]);
     return json({ ...configHints(normalizeConfig(saved ?? { games: [], authors: [] }), snapshot), revision: saved?.revision ?? 0 });
@@ -306,7 +384,7 @@ export default {
   async fetch(request, env, context) {
     try { return await handle(request, env, context); }
     catch (error) {
-      if (request.method === 'PUT') return json({ error: error instanceof Error ? error.message : '请求无效。' }, 400);
+      if (request.method === 'PUT' || request.method === 'POST' && new URL(request.url).pathname.startsWith('/api/internal/snapshot/upload')) return json({ error: error instanceof Error ? error.message : '请求无效。' }, 400);
       return json({ error: '暂时无法完成请求。' }, 503);
     }
   }
