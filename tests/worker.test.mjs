@@ -17,13 +17,18 @@ async function fixture(t) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(await readFile(new URL('../server/schema.sql', import.meta.url), 'utf8'));
   t.after(() => sqlite.close());
+  // RPC 除了 JSON 本身还有字符串编码和参数开销，按保守值检查聚合大小。
+  const checkRpc = value => assert.ok(JSON.stringify(value).length * 4 <= 32 * 1024 * 1024, 'D1 单次 RPC 容量超限。');
   const DB = { async batch(statements) {
+    checkRpc(statements.map(statement => statement.parameters));
     sqlite.exec('BEGIN');
     try { const results = await Promise.all(statements.map(statement => statement.run())); sqlite.exec('COMMIT'); return results; }
     catch (error) { sqlite.exec('ROLLBACK'); throw error; }
   }, prepare(sql) {
     const statement = sqlite.prepare(sql);
-    const bound = values => ({ first: async () => statement.get(...values), all: async () => ({results:statement.all(...values)}), run: async () => {
+    const bound = values => ({ parameters: values, first: async () => statement.get(...values), all: async () => {
+      const results = statement.all(...values); checkRpc(results); return {results};
+    }, run: async () => {
       if (values.some(value => typeof value === 'string' && Buffer.byteLength(value) > 2000000)) throw new Error('D1 单值容量超限。');
       return { meta: statement.run(...values) };
     } });
@@ -215,7 +220,7 @@ test('多榜快照上传清理各榜私有字段，删除热门榜游戏不影�
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:invalid}),env)).status,400);
 });
 
-test('5000 款游戏的大快照分片保存，失败回滚，缩小快照清理旧分片且不影响另一榜', async t => {
+test('5000 款游戏的大快照分批读写，上传失败保留旧版，并发读取不混版，过期分片清理', async t => {
   const {env,sqlite}=await fixture(t);
   const games=Array.from({length:5000},(_,i)=>({...game,appId:String(i+1),name:`游戏 ${i} 🎮 ${'测试'.repeat(8)}`}));
   const config={boards:[{id:'home',name:'群友榜',slug:'',games:[],authors:[]},{id:'hot',name:'热门榜',slug:'hot',games,authors:[]}]};
@@ -229,8 +234,11 @@ test('5000 款游戏的大快照分片保存，失败回滚，缩小快照清理
   assert.ok(Buffer.byteLength(JSON.stringify(snapshot)) > 2000000);
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:snapshot}),env)).status,200);
   const stored=sqlite.prepare("SELECT body FROM documents WHERE key='snapshot'").get();
-  assert.equal(JSON.parse(stored.body).format,'chunked-json-v1');
-  for(const {body} of sqlite.prepare("SELECT body FROM documents WHERE key LIKE 'snapshot:%'").all()) assert.ok(Buffer.byteLength(body)<2000000);
+  const manifest=JSON.parse(stored.body);
+  assert.equal(manifest.format,'chunked-json-v2');
+  assert.ok(manifest.parts>4);
+  for(const {body} of sqlite.prepare('SELECT body FROM documents WHERE key GLOB ?').all(`${manifest.prefix}:*`)) assert.ok(Buffer.byteLength(body)<2000000);
+  const partCount=()=>sqlite.prepare("SELECT count(*) AS count FROM documents WHERE key GLOB 'parts:snapshot:*'").get().count;
   const saved=await (await worker.fetch(request('/api/ranking'),env)).json();
   assert.equal(saved.boards[1].games.length,5000);
   assert.equal(saved.boards[1].authors.length,5000);
@@ -239,17 +247,66 @@ test('5000 款游戏的大快照分片保存，失败回滚，缩小快照清理
   assert.equal(saved.boards[1].games[0].lastAttemptAt,at);
   assert.equal(saved.boards[1].games[1].status,'pending');
   assert.equal(saved.boards[1].games[1].revenue.total,null);
-  sqlite.exec("CREATE TRIGGER fail_snapshot BEFORE INSERT ON documents WHEN NEW.key='snapshot:1' BEGIN SELECT RAISE(ABORT,'模拟分片写入失败'); END");
+  // 第二批失败：第一批已暂存的数据也应清理，主文档不能变化。
+  sqlite.exec("CREATE TRIGGER fail_snapshot BEFORE INSERT ON documents WHEN NEW.key GLOB 'parts:snapshot:*:4' BEGIN SELECT RAISE(ABORT,'模拟分片写入失败'); END");
   const failed={...snapshot,generatedAt:'2026-10-14T04:00:00.000Z'};
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:failed}),env)).status,400);
   assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),saved);
+  assert.equal(partCount(),manifest.parts);
+  sqlite.exec('DROP TRIGGER fail_snapshot');
+  // 暂存完成后的最后切换事务失败，同样保留旧版并清理未发布的新版本。
+  sqlite.exec("CREATE TRIGGER fail_snapshot BEFORE UPDATE ON documents WHEN NEW.key='snapshot' BEGIN SELECT RAISE(ABORT,'模拟版本切换失败'); END");
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:failed}),env)).status,400);
+  assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),saved);
+  assert.equal(partCount(),manifest.parts);
   sqlite.exec('DROP TRIGGER fail_snapshot');
   const smaller={...snapshot,boards:snapshot.boards.map(b=>({...b,games:[],authors:[]}))};
-  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:smaller}),env)).status,200);
+  const prepare=env.DB.prepare;
+  let switched=false;
+  env.DB.prepare=sql=>{
+    const statement=prepare(sql);
+    if(!sql.startsWith('SELECT key, body FROM documents WHERE key IN')) return statement;
+    return {...statement,bind(...values){
+      const bound=statement.bind(...values);
+      return {...bound,async all(){
+        const result=await bound.all();
+        if(!switched){
+          switched=true;
+          assert.equal(values.length,4);
+          assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:smaller}),env)).status,200);
+        }
+        return result;
+      }};
+    }};
+  };
+  // 读取第一批后切换新快照，后续批次仍应读到旧版。
+  assert.deepEqual(await (await worker.fetch(request('/api/ranking'),env)).json(),saved);
+  assert.ok(switched);
+  env.DB.prepare=prepare;
+  assert.equal(partCount(),manifest.parts);
   assert.equal(sqlite.prepare("SELECT count(*) AS count FROM documents WHERE key LIKE 'snapshot:%'").get().count,0);
   const reduced=await (await worker.fetch(request('/api/ranking'),env)).json();
   assert.equal(reduced.boards[1].games[0].revenue.total,null);
   assert.deepEqual(reduced.boards[0],saved.boards[0]);
+  sqlite.prepare("UPDATE documents SET updated_at='2020-01-01T00:00:00.000Z' WHERE key GLOB 'parts:snapshot:*'").run();
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:smaller}),env)).status,200);
+  assert.equal(partCount(),0);
+});
+
+test('旧版事务分片快照保持兼容，缩小文档时清除旧分片', async t => {
+  const {env,sqlite}=await fixture(t);
+  const snapshot={schemaVersion:2,generatedAt:'2026-10-14T03:00:00Z',asOf:'2026-10-13',monthStart:'2026-10-01',boards:[{id:'home',slug:'',name:'群友榜',authors:[],games:
+    Array.from({length:1000},(_,i)=>({...game,appId:String(i+1),status:'ok',history:Array.from({length:20},(_,day)=>({date:`2026-10-${String(day%13+1).padStart(2,'0')}`,revenue:day})),revenue:{yesterday:1,month:2,total:3}}))
+  }]};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:snapshot}),env)).status,200);
+  assert.equal(JSON.parse(sqlite.prepare("SELECT body FROM documents WHERE key='snapshot'").get().body).format,'chunked-json-v1');
+  const saved=await (await worker.fetch(request('/api/ranking'),env)).json();
+  assert.equal(saved.boards[0].games.length,1000);
+  assert.deepEqual(saved.boards[0].games.at(-1).history,snapshot.boards[0].games.at(-1).history);
+  const smaller={...snapshot,boards:[{...snapshot.boards[0],games:[]}]};
+  assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:smaller}),env)).status,200);
+  assert.equal(sqlite.prepare("SELECT count(*) AS count FROM documents WHERE key LIKE 'snapshot:%'").get().count,0);
+  assert.equal((await (await worker.fetch(request('/api/ranking'),env)).json()).boards[0].games.length,0);
 });
 
 test('公开摘要和游戏详情独立加载，摘要缓存不重读完整快照，配置和快照变化均使摘要失效', async t => {

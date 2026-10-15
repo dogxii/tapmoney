@@ -78,36 +78,77 @@ async function readBody(request, limit = 1024 * 1024) {
 }
 
 async function document(db, key) {
-  // 一次查询读取主文档及分片，避免上传期间混读两个版本。
+  // 小文档和旧版分片一次读取；大文档按清单中的固定版本分批读取。
   const { results } = await db.prepare('SELECT key, body, revision FROM documents WHERE key = ? OR key GLOB ?').bind(key, `${key}:*`).all();
   const row = results.find(row => row.key === key);
   if (!row) return null;
+  return { ...await readDocumentValue(db, row, results), revision: row.revision };
+}
+
+async function readDocumentValue(db, row, results) {
+  const manifest = JSON.parse(row.body);
+  if (manifest.format === 'chunked-json-v2') {
+    results = [...results];
+    for (let start = 0; start < manifest.parts; start += 4) {
+      const keys = Array.from({length:Math.min(4, manifest.parts - start)}, (_, offset) => `${manifest.prefix}:${start + offset}`);
+      const parts = await db.prepare(`SELECT key, body FROM documents WHERE key IN (${keys.map(() => '?').join(',')})`).bind(...keys).all();
+      results.push(...parts.results);
+    }
+  }
+  return documentValue(row, results);
+}
+
+function documentValue(row, results) {
   let value = JSON.parse(row.body);
-  if (value.format === 'chunked-json-v1') {
+  if (['chunked-json-v1', 'chunked-json-v2'].includes(value.format)) {
+    const prefix = value.prefix ?? row.key;
     const pieces = new Map(results.map(row => [row.key, row.body]));
     value = JSON.parse(Array.from({ length: value.parts }, (_, index) => {
-      const piece = pieces.get(`${key}:${index}`);
+      const piece = pieces.get(`${prefix}:${index}`);
       if (piece === undefined) throw new Error('快照分片缺失。');
       return JSON.parse(piece);
     }).join(''));
   }
-  return { ...value, revision: row.revision };
+  return value;
 }
 
 async function saveDocument(db, key, snapshot) {
   const text = JSON.stringify(snapshot), size = 512 * 1024;
   const now = new Date().toISOString();
+  const previous = await db.prepare('SELECT body FROM documents WHERE key = ?').bind(key).first();
+  const oldPrefix = previous ? JSON.parse(previous.body).prefix : null;
   const statements = [db.prepare('DELETE FROM documents WHERE key GLOB ?').bind(`${key}:*`)];
-  let body = text;
+  let body = text, prefix;
   if (text.length > size) {
     const parts = [];
     for (let offset = 0; offset < text.length; offset += size) parts.push(text.slice(offset, offset + size));
     // 分片编码为 JSON 字符串，跨片的 Unicode 代理对也能无损还原。
-    parts.forEach((part, index) => statements.push(db.prepare('INSERT INTO documents (key, body, updated_at) VALUES (?, ?, ?)').bind(`${key}:${index}`, JSON.stringify(part), now)));
-    body = JSON.stringify({ format: 'chunked-json-v1', parts: parts.length });
+    if (text.length > 4 * 1024 * 1024) {
+      // D1 的 RPC 参数上限为 32 MiB。先分批写入独立版本，主文档最后原子切换。
+      prefix = `parts:${key}:${crypto.randomUUID()}`;
+      for (let start = 0; start < parts.length; start += 4) {
+        try {
+          await db.batch(parts.slice(start, start + 4).map((part, offset) => db.prepare('INSERT INTO documents (key, body, updated_at) VALUES (?, ?, ?)').bind(`${prefix}:${start + offset}`, JSON.stringify(part), now)));
+        } catch (error) {
+          await db.prepare('DELETE FROM documents WHERE key GLOB ?').bind(`${prefix}:*`).run().catch(() => {});
+          throw error;
+        }
+      }
+      body = JSON.stringify({ format: 'chunked-json-v2', prefix, parts: parts.length });
+    } else {
+      parts.forEach((part, index) => statements.push(db.prepare('INSERT INTO documents (key, body, updated_at) VALUES (?, ?, ?)').bind(`${key}:${index}`, JSON.stringify(part), now)));
+      body = JSON.stringify({ format: 'chunked-json-v1', parts: parts.length });
+    }
   }
   statements.push(db.prepare('INSERT INTO documents (key, body, revision, updated_at) VALUES (?, ?, 1, ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, revision = documents.revision + 1, updated_at = excluded.updated_at').bind(key, body, now));
-  await db.batch(statements);
+  // 旧版本保留两分钟，让已读取旧清单的请求有时间读完全部分片。
+  if (oldPrefix) statements.push(db.prepare('UPDATE documents SET updated_at = ? WHERE key GLOB ?').bind(now, `${oldPrefix}:*`));
+  statements.push(db.prepare('DELETE FROM documents WHERE key GLOB ? AND updated_at < ? AND key NOT GLOB ?').bind(`parts:${key}:*`, new Date(Date.now() - 120000).toISOString(), `${prefix ?? key}:*`));
+  try { await db.batch(statements); }
+  catch (error) {
+    if (prefix) await db.prepare("DELETE FROM documents WHERE key GLOB ? AND (SELECT json_extract(body, '$.prefix') FROM documents WHERE key = ?) IS NOT ?").bind(`${prefix}:*`, key, prefix).run().catch(() => {});
+    throw error;
+  }
 }
 
 async function publicData(env, request) {
@@ -129,8 +170,7 @@ async function projectedData(env, request, key, select, context) {
   const version = ['config', 'snapshot'].map(key => results.find(row => row.key === key)?.revision ?? 0).join(':');
   const root = results.find(row => row.key === key);
   if (root) {
-    let value = JSON.parse(root.body);
-    if (value.format === 'chunked-json-v1') value = JSON.parse(Array.from({length:value.parts}, (_, index) => JSON.parse(results.find(row => row.key === `${key}:${index}`).body)).join(''));
+    const value = await readDocumentValue(env.DB, root, results);
     if (value.version === version) return value.data;
   }
   const source = await publicData(env, request);
