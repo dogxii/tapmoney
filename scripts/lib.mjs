@@ -82,6 +82,21 @@ export class TapTapClient {
     this.delay = Number(env.TAPTAP_REQUEST_DELAY_MS ?? 3000);
     if (!Number.isFinite(this.delay) || this.delay < 0) throw new Error('TAPTAP_REQUEST_DELAY_MS 必须是非负数字。');
     this.nextRequestAt = 0;
+    this.pacing = Promise.resolve();
+    this.blocked = null;
+  }
+
+  async pace() {
+    const previous = this.pacing;
+    let release;
+    this.pacing = new Promise(resolve => { release = resolve; });
+    try {
+      await previous;
+      if (this.blocked) throw this.blocked;
+      await this.wait(Math.max(0, this.nextRequestAt - Date.now()));
+      if (this.blocked) throw this.blocked;
+      this.nextRequestAt = Date.now() + this.delay;
+    } finally { release(); }
   }
 
   async get(route, query = {}) {
@@ -89,8 +104,7 @@ export class TapTapClient {
     if (url.origin !== ORIGIN || !url.pathname.startsWith('/api/')) throw new Error('采集脚本只允许请求 TapTap 开发者后台 API。');
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
     for (let attempt = 0; attempt < 3; attempt++) {
-      await this.wait(Math.max(0, this.nextRequestAt - Date.now()));
-      this.nextRequestAt = Date.now() + this.delay;
+      await this.pace();
       let response;
       try {
         response = await this.request(url, {
@@ -101,9 +115,9 @@ export class TapTapClient {
         if (attempt < 2) { await this.wait(1000 * (attempt + 1)); continue; }
         throw new Error('TapTap 网络请求失败或超时。');
       }
-      if (response.status === 401) throw new AuthenticationError();
+      if (response.status === 401) throw (this.blocked = new AuthenticationError());
       if (response.status === 403) throw new Error('TapTap 拒绝本次接口访问（HTTP 403）；不代表登录会话已过期。');
-      if (response.status === 429) throw new RateLimitError();
+      if (response.status === 429) throw (this.blocked = new RateLimitError());
       if (response.status >= 500) {
         if (attempt < 2) { await this.wait(2000 * (attempt + 1)); continue; }
       }
@@ -113,7 +127,7 @@ export class TapTapClient {
       catch { throw new Error('TapTap 未返回有效 JSON。'); }
       if (json.success !== true || !json.data) {
         const message = String(json.data?.msg ?? json.message ?? json.msg ?? '');
-        if (/未认证|未登录|登录失效|登录过期|unauth|token.*expired/i.test(message)) throw new AuthenticationError();
+        if (/未认证|未登录|登录失效|登录过期|unauth|token.*expired/i.test(message)) throw (this.blocked = new AuthenticationError());
         throw new Error('TapTap 接口未返回成功数据。');
       }
       return json.data;

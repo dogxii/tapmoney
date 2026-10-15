@@ -28,10 +28,26 @@ function selectBatch(config, oldBoards, dates, size, force) {
   return selected;
 }
 
+async function concurrentMap(items, limit, run) {
+  const results = new Array(items.length);
+  let index = 0, failure;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (!failure && index < items.length) {
+      const current = index++;
+      try { results[current] = await run(items[current]); }
+      catch (error) { failure ??= error; }
+    }
+  }));
+  if (failure) throw failure;
+  return results;
+}
+
 export async function collect({ env, config, client, catalogBuilder = buildCatalog, now = new Date(), outputFile = path.join(ROOT, 'site/data/ranking.json'), force = false } = {}) {
   env ??= await loadEnv();
   const batchSize = Number(env.TAPMONEY_BATCH_SIZE ?? 40);
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 500) throw new Error('TAPMONEY_BATCH_SIZE 必须是 1–500 的整数。');
+  const concurrency = Number(env.TAPMONEY_CONCURRENCY ?? 1);
+  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 10) throw new Error('TAPMONEY_CONCURRENCY 必须是 1–10 的整数。');
   config = normalizeConfig(config ?? await (configSource(env) === 'cloud' ? remoteConfig(env) : loadConfig()));
   const previous = await readJson(outputFile, { games: [] });
   const oldBoards = new Map(boardsOf(previous).map(board => [board.id, board]));
@@ -61,13 +77,8 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
     // 未轮到的游戏不请求资料页或收益接口。
     const catalog = batch.length ? await catalogBuilder(batch, { now, authors: board.authors }) : { games: {}, authors: [] };
     const profiles = new Map([...kept.authors, ...catalog.authors].map(author => [author.id, author]));
-    const rows = [];
-    for (const game of board.games) {
+    const collected = await concurrentMap(batch, concurrency, async game => {
       const old = oldRows.get(game.appId);
-      if (!selected.has(`${board.id}:${game.appId}`)) {
-        rows.push({ ...old, status: old.updatedAt && old.asOf !== dates.asOf ? 'stale' : old.status });
-        continue;
-      }
       const metadata = catalog.games[game.appId];
       const base = {
         appId: game.appId, name: game.name, url: `https://www.taptap.cn/app/${game.appId}`,
@@ -89,12 +100,13 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
           { total: await query('revenue', queryDeveloperId, game.appId, game.totalStartDate, dates.asOf), history: [] };
         const total = report.total;
         if (yesterday === null && month === null && total === null) throw new Error('该游戏没有取得任何数值收益记录。');
-        rows.push({ ...base, status: 'ok', asOf: dates.asOf, monthStart: dates.monthStart, updatedAt: now.toISOString(), revenue: { yesterday, month, total }, history: report.history });
         succeeded++;
         console.log(`已采集 ${board.name} · ${game.name}（${game.appId}）。`);
+        return { ...base, status: 'ok', asOf: dates.asOf, monthStart: dates.monthStart, updatedAt: now.toISOString(), revenue: { yesterday, month, total }, history: report.history };
       } catch (error) {
         if (error instanceof AuthenticationError || error instanceof RateLimitError) throw error;
-        rows.push({
+        console.error(`${board.name} · ${game.name}（${game.appId}）采集失败：${error.message} 保留该榜历史数据。`);
+        return {
           ...base, status: old?.updatedAt ? 'stale' : 'unavailable',
           asOf: old?.asOf ?? null, monthStart: old?.monthStart ?? null, updatedAt: old?.updatedAt ?? null,
           history: revenueHistory({ list: old?.history ?? [] }, game.totalStartDate, old?.asOf ?? dates.asOf),
@@ -103,10 +115,14 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
             month: old?.revenue?.month ?? null,
             total: old?.revenue?.total ?? null
           }
-        });
-        console.error(`${board.name} · ${game.name}（${game.appId}）采集失败：${error.message} 保留该榜历史数据。`);
+        };
       }
-    }
+    });
+    const updated = new Map(collected.map(game => [game.appId, game]));
+    const rows = board.games.map(game => {
+      const old = oldRows.get(game.appId);
+      return updated.get(game.appId) ?? { ...old, status: old.updatedAt && old.asOf !== dates.asOf ? 'stale' : old.status };
+    });
     const used = new Set(rows.flatMap(game => game.authorIds));
     boards.push({ ...boardInfo(board), games: rows,
       authors: [...profiles.values()].filter(author => used.has(author.id)).map(({ id, name, avatarUrl, avatarSourceUrl, tapUrl }) => ({ id, name, avatarUrl, avatarSourceUrl, tapUrl })) });

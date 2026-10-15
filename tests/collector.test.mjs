@@ -74,6 +74,28 @@ test('连续收益请求默认至少相隔三秒，429 不重试', async t => {
   assert.deepEqual(times, [10000, 13000, 16000]);
 });
 
+test('并发请求共用启动间隔，429 后不再发送排队请求', async t => {
+  let now = 10000;
+  t.mock.method(Date, 'now', () => now);
+  const waits = [], times = [];
+  const tick = () => new Promise(resolve => setImmediate(resolve));
+  const client = new TapTapClient({ TAPTAP_COOKIE: 'fixture' }, {
+    wait: ms => new Promise(resolve => waits.push({ ms, release: () => { now += ms; resolve(); } })),
+    request: async () => {
+      times.push(now);
+      return times.length === 2 ? new Response('', { status: 429 }) : new Response(JSON.stringify({ success: true, data: {} }));
+    }
+  });
+  const done = Promise.allSettled(Array.from({ length: 3 }, () => client.get('/api/user/v1/me')));
+  await tick(); assert.equal(waits[0].ms, 0); waits[0].release();
+  await tick(); assert.deepEqual(times, [10000]); assert.equal(waits[1].ms, 3000); waits[1].release();
+  await tick(); if (waits[2]) waits[2].release();
+  const results = await done;
+  assert.deepEqual(times, [10000, 13000]);
+  assert.equal(results[0].status, 'fulfilled');
+  assert.ok(results.slice(1).every(result => result.reason instanceof RateLimitError));
+});
+
 async function fixture(t) {
   // 预期的采集失败不写入测试进程的日志管道。
   t.mock.method(console, 'log', () => {});
@@ -84,6 +106,46 @@ async function fixture(t) {
 }
 const env = { TAPTAP_COOKIE: 'fixture-secret', TAPTAP_DEVELOPER_ID: '275960' };
 const game = { appId: '959305', name: '增量牧场', totalStartDate: '2020-01-01' };
+
+test('并发采集限制在途数量、保持配置顺序，单个失败不会覆盖该游戏历史', async t => {
+  const outputFile = await fixture(t);
+  const games = Array.from({length:7}, (_,i)=>({...game,appId:String(i+1)}));
+  await writeFile(outputFile, JSON.stringify({games:[{...games[2],updatedAt:'2026-10-12T03:00:00Z',asOf:'2026-10-11',monthStart:'2026-10-01',revenue:{yesterday:8,month:9,total:10}}]}));
+  let active = 0, peak = 0;
+  const snapshot = await collect({ env:{...env,TAPMONEY_CONCURRENCY:'3'}, config:{games,authors:[]}, outputFile, now:new Date('2026-10-14T03:00:00Z'),
+    catalogBuilder:async()=>({games:{},authors:[]}),client:{get:async()=>({}),revenue:async(dev,app)=>{
+      active++; peak=Math.max(peak,active);
+      await new Promise(resolve=>setImmediate(resolve)); active--;
+      if(app==='3')throw new Error('模拟单款失败');
+      return Number(app);
+    }}
+  });
+  assert.equal(peak,3); assert.equal(active,0);
+  assert.deepEqual(snapshot.boards[0].games.map(game=>game.appId),games.map(game=>game.appId));
+  assert.deepEqual(snapshot.boards[0].games.map(game=>game.revenue.total),[1,2,10,4,5,6,7]);
+  assert.equal(snapshot.boards[0].games[2].asOf,'2026-10-11');
+});
+
+test('并发发生限流时等待在途任务退出、不派发后续游戏、不写入部分快照', async t => {
+  const outputFile=await fixture(t), previous=JSON.stringify({games:[]});
+  await writeFile(outputFile,previous);
+  let release, settled=false;
+  const gate=new Promise(resolve=>{release=resolve;}), started=new Set();
+  const collecting=collect({env:{...env,TAPMONEY_CONCURRENCY:'2'},outputFile,
+    config:{games:[1,2,3,4].map(id=>({...game,appId:String(id)})),authors:[]},
+    catalogBuilder:async()=>({games:{},authors:[]}),client:{get:async()=>({}),revenue:async(dev,app)=>{
+      started.add(app);
+      if(app==='1')throw new RateLimitError();
+      await gate; return 1;
+    }}
+  });
+  collecting.then(()=>{settled=true;},()=>{settled=true;});
+  while(!started.size) await new Promise(resolve=>setImmediate(resolve));
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(settled,false); assert.deepEqual([...started],['1','2']);
+  release(); await assert.rejects(collecting,RateLimitError);
+  assert.deepEqual([...started],['1','2']); assert.equal(await readFile(outputFile,'utf8'),previous);
+});
 
 test('月初不请求反向日期区间，公开快照不包含凭证或查询工作室', async t => {
   const outputFile = await fixture(t);
