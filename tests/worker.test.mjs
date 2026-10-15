@@ -225,11 +225,11 @@ test('多榜快照上传清理各榜私有字段，删除热门榜游戏不影�
   assert.equal((await worker.fetch(request('/api/internal/snapshot',{method:'PUT',body:invalid}),env)).status,400);
 });
 
-test('5000 款游戏的大快照分批读写，上传失败保留旧版，并发读取不混版，过期分片清理', async t => {
+test('6184 款游戏和超过 1 MiB 的配置分批读写，失败保留旧版，并发读取不混版，过期分片清理', async t => {
   const {env,sqlite}=await fixture(t);
-  const games=Array.from({length:5000},(_,i)=>({...game,appId:String(i+1),name:`游戏 ${i} 🎮 ${'测试'.repeat(8)}`}));
+  const games=Array.from({length:6184},(_,i)=>({...game,appId:String(i+1),name:`游戏 ${i} 🎮 ${'测试'.repeat(8)}`,iconUrl:`https://img-tc.tapimg.com/market/images/${'a'.repeat(40)}.png/_tap_appicon.jpg`}));
   const config={boards:[{id:'home',name:'群友榜',slug:'',games:[],authors:[]},{id:'hot',name:'热门榜',slug:'hot',games,authors:[]}]};
-  assert.ok(Buffer.byteLength(JSON.stringify(config)) > 256 * 1024);
+  assert.ok(Buffer.byteLength(JSON.stringify(config)) > 1024 * 1024);
   sqlite.prepare('INSERT INTO documents (key,body,revision,updated_at) VALUES (?,?,?,?)').run('config',JSON.stringify(config),1,'2026-10-14');
   const at='2026-10-14T03:00:00.000Z';
   const snapshot={schemaVersion:2,generatedAt:at,asOf:'2026-10-13',monthStart:'2026-10-01',boards:config.boards.map(b=>({...b,
@@ -245,13 +245,14 @@ test('5000 款游戏的大快照分批读写，上传失败保留旧版，并发
   for(const {body} of sqlite.prepare('SELECT body FROM documents WHERE key GLOB ?').all(`${manifest.prefix}:*`)) assert.ok(Buffer.byteLength(body)<2000000);
   const partCount=()=>sqlite.prepare("SELECT count(*) AS count FROM documents WHERE key GLOB 'parts:snapshot:*'").get().count;
   const saved=await (await worker.fetch(request('/api/ranking'),env)).json();
-  assert.equal(saved.boards[1].games.length,5000);
-  assert.equal(saved.boards[1].authors.length,5000);
+  assert.equal(saved.boards[1].games.length,6184);
+  assert.equal(saved.boards[1].authors.length,6184);
   assert.equal(saved.boards[1].games.at(-1).name,games.at(-1).name);
   assert.deepEqual(saved.boards[1].games.at(-1).history,snapshot.boards[1].games.at(-1).history);
   assert.equal(saved.boards[1].games[0].lastAttemptAt,at);
   assert.equal(saved.boards[1].games[1].status,'pending');
   assert.equal(saved.boards[1].games[1].revenue.total,null);
+  assert.equal((await worker.fetch(request('/api/admin/config',{method:'PUT',body:{...config,revision:1}}),env)).status,200);
   // 第二批失败：第一批已暂存的数据也应清理，主文档不能变化。
   sqlite.exec("CREATE TRIGGER fail_snapshot BEFORE INSERT ON documents WHEN NEW.key GLOB 'parts:snapshot:*:4' BEGIN SELECT RAISE(ABORT,'模拟分片写入失败'); END");
   const failed={...snapshot,generatedAt:'2026-10-14T04:00:00.000Z'};

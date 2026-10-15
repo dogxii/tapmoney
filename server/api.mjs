@@ -1,4 +1,4 @@
-import { normalizeGames, validDate } from '../shared/config.mjs';
+import { normalizeGames, validDate, MAX_GAMES_PER_BOARD } from '../shared/config.mjs';
 import { normalizeAuthors, normalizeConfig, extractGameMetadata } from '../shared/catalog.mjs';
 import { mediaUrl, cleanMedia } from '../shared/media.mjs';
 import { boardsOf, boardInfo, boardAtPath, validateBoards } from '../shared/boards.mjs';
@@ -187,7 +187,7 @@ async function snapshotUpload(request, env, url) {
     const snapshot = cleanSnapshot({ ...input, boards: input.boards?.map(board => ({ ...board, games: [], authors: [] })) });
     const boards = snapshot.boards.map((board, index) => {
       const { parts, gameCount, authorCount } = input.boards[index];
-      if (!Number.isInteger(parts) || parts < 1 || parts > 1000 || !Number.isInteger(gameCount) || gameCount < 0 || gameCount > 5000 || !Number.isInteger(authorCount) || authorCount < 0 || authorCount > 10000) throw new Error('上传分片信息无效。');
+      if (!Number.isInteger(parts) || parts < 1 || parts > 1000 || !Number.isInteger(gameCount) || gameCount < 0 || gameCount > MAX_GAMES_PER_BOARD || !Number.isInteger(authorCount) || authorCount < 0 || authorCount > 10000) throw new Error('上传分片信息无效。');
       return { ...boardInfo(board), parts, gameCount, authorCount };
     });
     const uploadId = crypto.randomUUID(), now = new Date().toISOString();
@@ -330,7 +330,7 @@ async function handle(request, env, context) {
     }
   }
   if (route === '/api/admin/config' && request.method === 'PUT') {
-    const input = await readBody(request);
+    const input = await readBody(request, 2 * 1024 * 1024);
     if (!Number.isInteger(input.revision) || input.revision < 0) return json({ error: '缺少配置版本，请重新加载。' }, 400);
     const config = normalizeConfig(input);
     const current = await document(env.DB, 'config');

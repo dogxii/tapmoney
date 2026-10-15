@@ -13,6 +13,7 @@
   },
   "scripts": {
     "login": "node scripts/login.mjs",
+    "discover": "node scripts/discover.mjs",
     "collect": "node scripts/collect.mjs",
     "collect:setup": "node scripts/collection-setup.mjs",
     "build": "node scripts/build.mjs",

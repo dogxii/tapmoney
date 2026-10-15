@@ -9,12 +9,12 @@ const author = { id: 'maker', name: '群友作者', gameIds: ['1'], qq: '1234567
 const home = { id: 'home', slug: '', name: '群友榜', games: [game], authors: [author] };
 const hot = { id: 'hot', slug: 'hot', name: '热门榜', games: [game], authors: [{ ...author, name: '热门作者', qq: '87654321' }] };
 
-test('每榜接受 5000 款游戏，超过上限拒绝且不影响另一榜', () => {
-  const games=Array.from({length:5000},(_,i)=>({...game,appId:String(i+1)}));
+test('每榜接受 10000 款游戏，超过上限拒绝且不影响另一榜', () => {
+  const games=Array.from({length:10000},(_,i)=>({...game,appId:String(i+1)}));
   const config=normalizeConfig({boards:[home,{...hot,games}]});
-  assert.equal(config.boards[1].games.length,5000);
+  assert.equal(config.boards[1].games.length,10000);
   assert.deepEqual(config.boards[0],normalizeConfig({boards:[home]}).boards[0]);
-  assert.throws(()=>normalizeConfig({boards:[home,{...hot,games:[...games,{...game,appId:'5001'}]}]}));
+  assert.throws(()=>normalizeConfig({boards:[home,{...hot,games:[...games,{...game,appId:'10001'}]}]}));
 });
 
 test('旧单榜迁移到首页，热门榜为空；配置和静态快照使用相同的独立路径', () => {
