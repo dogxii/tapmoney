@@ -17,6 +17,7 @@
     "collect": "node scripts/collect.mjs",
     "collect:setup": "node scripts/collection-setup.mjs",
     "build": "node scripts/build.mjs",
+    "package:static": "node scripts/package-static.mjs",
     "setup:github": "node scripts/github-setup.mjs",
     "snapshot:upload": "node scripts/sync.mjs --snapshot",
     "daily": "node scripts/daily.mjs",

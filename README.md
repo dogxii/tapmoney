@@ -145,6 +145,22 @@ https://cdn.jsdelivr.net/gh/dogxii/tapmoney@<commit>/site/data/ranking.json
 
 `@main` 有 CDN 缓存延迟，不保证每日立即更新；主站不依赖它。仓库模式可在构建环境设置 `TAPMONEY_DATA_URL` 使用完整快照的公开 HTTPS 镜像，此时读取该镜像的完整 JSON。图片使用快照中的 TapTap 原链接。
 
+## 导出静态离线包
+
+接口不可用时，可以把当前公开快照和完整静态页面一次性打包：
+
+```bash
+npm run package:static
+```
+
+默认从线上 `/data/ranking.json` 读取快照，生成 `output/tapmoney-static-YYYY-MM-DD/`。如果线上接口只能通过代理访问，或已经核对本地快照与线上文件一致，可使用：
+
+```bash
+npm run package:static -- --local
+```
+
+输出目录本身就是静态站点根目录，上传到 Cloudflare Pages、Nginx 或其他静态托管即可；页面只读取 `data/` 下的 JSON，不依赖 `/api`。`backup/ranking.json` 保存原始快照，`backup/tapmoney.sql` 是可导入 SQLite / D1 `documents` 表的备份，`backup/tapmoney.sqlite` 是同一份数据的 SQLite 文件，`backup/MANIFEST.json` 记录来源和 SHA-256。也可以指定 `--source URL|文件` 和 `--output 目录`。
+
 ## 数据与导出
 
 - 收益来自 `/api/mini-app/v1/ad/payout-report-data`，人民币广告收益，使用报表合计与真实日报，不擅自乘除 100。
