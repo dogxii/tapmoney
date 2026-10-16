@@ -1,4 +1,4 @@
-import { rankingUrl, adminEnabled } from './runtime.js';
+import { rankingUrl } from './runtime.js';
 import { authorDetails } from '../shared/authors.mjs';
 
 const details = new Map();
@@ -20,10 +20,6 @@ async function summary(url, refresh) {
 
 export async function loadRanking(refresh = false) {
   details.clear();
-  if (adminEnabled) {
-    try { return await summary(`${rankingUrl}?view=summary&path=${encodeURIComponent(location.pathname)}`, refresh); }
-    catch { return summary(boardFile(), refresh).catch(() => json('/data/ranking.json', refresh)); }
-  }
   if (rankingUrl === '/data/ranking.json') return summary(boardFile(), refresh).catch(() => json(rankingUrl, refresh));
   return json(rankingUrl, refresh);
 }
@@ -32,8 +28,7 @@ function loadDetail(type, id, snapshot) {
   const key = `${type}:${snapshot.id}:${id}:${snapshot.generatedAt}`;
   if (!details.has(key)) {
     const file = `/data/${type}s/${snapshot.id}/${id}.json`;
-    const url = adminEnabled ? `/api/${type}?board=${encodeURIComponent(snapshot.id)}&id=${encodeURIComponent(id)}` : file;
-    const read = refresh => json(url, refresh).catch(error => { if (!adminEnabled) throw error; return json(file, refresh); });
+    const read = refresh => json(file, refresh);
     details.set(key, read(false).then(async data => {
       if (data.generatedAt !== snapshot.generatedAt) data = await read(true);
       if ((data[type]?.appId ?? data[type]?.id) !== id) throw new Error('详情数据无效');

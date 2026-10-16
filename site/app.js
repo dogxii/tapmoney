@@ -1,5 +1,4 @@
 import { money, node, portrait, authorLink, iconButton } from './ui.js';
-import { adminEnabled } from './runtime.js';
 import { loadRanking, loadGame, loadAuthor } from './data-client.js';
 import { metricValue, rankingRows, periodGrowth } from './data-utils.js';
 import { authorsRanking } from '../shared/authors.mjs';
@@ -231,15 +230,3 @@ document.querySelectorAll('[data-view]').forEach(button => button.addEventListen
 }));
 document.querySelector('#refresh').addEventListener('click', () => load(true));
 load();
-if (adminEnabled) {
-  const entry = document.querySelector('#manage-open'); entry.hidden = false;
-  let admin;
-  entry.addEventListener('click', async () => {
-    entry.disabled = true;
-    try {
-      admin ??= import('./admin.js').then(({initAdmin}) => initAdmin({ getBoardId: () => snapshot?.id, onSaved: async path => { if (path) history.replaceState(null, '', path + (authorView ? '?view=authors' : '')); await load(true); } }));
-      const open = await admin; await open();
-    } catch { admin = undefined; notice('暂时无法加载管理界面', true); }
-    finally { entry.disabled = false; }
-  });
-}

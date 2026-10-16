@@ -112,12 +112,9 @@ td.numeric:last-child, th.numeric:last-child { padding-right: 22px; }
 .text-button { border: 0; background: transparent; color: var(--blue); padding: 6px 0; }
 .refreshing .icon { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.manage-entry { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); width: 32px; height: 32px; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--muted); opacity: .28; transition: opacity .2s, background .2s; }
-.manage-entry:hover, .manage-entry:focus-visible { opacity: 1; background: var(--selected); }
 dialog { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; padding: 24px; max-height: calc(100dvh - 48px); overflow-y: auto; box-shadow: 0 20px 100px #00000018; }
 dialog::backdrop { background: #00000032; backdrop-filter: blur(3px); }
 .detail-dialog { width: min(780px, calc(100vw - 36px)); }
-.admin-dialog { width: min(530px, calc(100vw - 36px)); }
 .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
 h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
 .detail-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -171,34 +168,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
 .secondary-button { border: 1px solid var(--line); color: var(--ink); background: transparent; }
 .secondary-button:hover { background: var(--hover); }
 .secondary-button .icon { width: 13px; height: 13px; }
-.login-form { display: flex; flex-direction: column; gap: 18px; }
-.login-form .primary-button { align-self: flex-end; }
-.form-field { display: flex; flex-direction: column; gap: 9px; font-size: 11px; color: var(--muted); min-width: 0; }
-.form-field input, .bindings select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 10px 11px; background: var(--surface); color: var(--ink); font-size: 12px; min-width: 0; }
-.form-field input:disabled { color: var(--muted); background: var(--hover); }
-.form-field input::placeholder { color: var(--muted); }
-.admin-message { font-size: 11px; color: var(--muted); line-height: 1.7; margin: 14px 0 0; }
-.admin-message.error { color: var(--red); }
-.admin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
-.admin-toolbar .tabs button { padding: 4px 15px; }
-.admin-scope { margin-bottom: 18px; }
-.admin-scope select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; background: var(--surface); color: var(--ink); }
-.admin-collection { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--muted); }
-.admin-collection.error { color: var(--red); }
-.admin-collection .icon-button { width: 24px; height: 24px; }
-.admin-collection .icon { width: 12px; height: 12px; }
-.collecting .icon { animation: collect-spin 1.5s linear infinite; }
-@keyframes collect-spin { to { transform: rotate(360deg); } }
-.admin-list { max-height: 400px; overflow-y: auto; }
-.admin-row { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--line); }
-.admin-row:last-child { border-bottom: 0; }
-.admin-row .game-logo { width: 33px; height: 33px; border-radius: 8px; }
-.admin-row .avatar { width: 28px; height: 28px; }
-.admin-row-text { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
-.admin-row-text strong { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.admin-row-text > span { font-size: 10px; color: var(--muted); }
-.form-fields { display: grid; gap: 19px; }
-.form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 24px; }
 
 #aggregate-group { display: inline-flex; align-items: center; gap: 10px; }
 .scope-note { margin: -8px 0 18px; font-size: 11px; color: var(--muted); line-height: 1.8; }
@@ -211,8 +180,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
 .author-work .game-cell { min-width: 0; }
 .author-work .game-cell > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .author-work > .numeric { color: var(--muted); font-size: 12px; flex-shrink: 0; }
-.game-preview { display: flex; align-items: center; gap: 12px; padding: 16px 0; }
-.admin-pagination { justify-content: flex-end; margin-top: 12px; }
 
 @media(max-width: 1000px) {
   .heading-label { gap: 10px; }
@@ -231,8 +198,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; line-height: 1.5; }
   .topbar { height: 72px; }
   .topbar-start { gap: 14px; }
   #board-select { max-width: 116px; font-size: 11px; }
-  .admin-toolbar .tabs button { padding: 4px 10px; }
-  .admin-toolbar .secondary-button { padding: 6px 9px; }
   .heading { margin: 30px 0 20px; gap: 10px; }
   h1 { font-size: 21px; white-space: nowrap; }
   .heading-tools { width: 100%; gap: 8px; }

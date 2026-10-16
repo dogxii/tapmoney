@@ -21,6 +21,3 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: npm run build
-        env:
-          TAPMONEY_CONFIG_SOURCE: cloud

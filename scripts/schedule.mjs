@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { homedir } from 'node:os';
-import { mkdir, writeFile, rm, access } from 'node:fs/promises';
+import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { ROOT, loadEnv, printError } from './lib.mjs';
 
@@ -37,15 +37,14 @@ async function schedule() {
 </dict></plist>\n`;
   if (action === 'preview') { console.log(plist); return; }
   const env = await loadEnv();
-  if (!env.TAPTAP_COOKIE || !env.TAPTAP_DEVELOPER_ID || !env.CLOUDFLARE_PAGES_PROJECT) throw new Error('请先完成 TapTap 登录并配置 Cloudflare Pages 项目，再安装每日任务。');
-  await access(path.join(ROOT, 'node_modules/wrangler/bin/wrangler.js'));
+  if (!env.TAPTAP_COOKIE || !env.TAPTAP_DEVELOPER_ID) throw new Error('请先完成 TapTap 登录，再安装每日任务。');
   await mkdir(path.dirname(file), { recursive: true });
   await mkdir(logDir, { recursive: true, mode: 0o700 });
   await writeFile(file, plist);
   spawnSync('launchctl', ['bootout', `gui/${process.getuid()}`, file], { stdio: 'ignore' });
   const result = spawnSync('launchctl', ['bootstrap', `gui/${process.getuid()}`, file], { stdio: 'inherit' });
   if (result.status !== 0) throw new Error('launchd 注册失败，配置文件已保存供检查。');
-  console.log(`已安装每天 ${time}（本机时区）的自动采集和发布任务。电脑关机时不会运行。`);
+  console.log(`已安装每天 ${time}（本机时区）的自动采集和静态构建任务。电脑关机时不会运行。`);
 }
 
 schedule().catch(printError);

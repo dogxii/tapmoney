@@ -2,8 +2,6 @@ import path from 'node:path';
 import { ROOT, loadEnv, readJson, atomicWrite, periods, TapTapClient, AuthenticationError, RateLimitError, validId, revenueHistory, isMain, printError } from './lib.mjs';
 import { buildCatalog } from './catalog.mjs';
 import { loadConfig } from './config.mjs';
-import { remoteConfig } from './sync.mjs';
-import { configSource } from '../shared/config.mjs';
 import { normalizeConfig } from '../shared/catalog.mjs';
 import { boardsOf, boardInfo } from '../shared/boards.mjs';
 import { publicRanking } from '../shared/snapshot.mjs';
@@ -49,7 +47,7 @@ export async function collect({ env, config, client, catalogBuilder = buildCatal
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 500) throw new Error('TAPMONEY_BATCH_SIZE 必须是 1–500 的整数。');
   const concurrency = Number(env.TAPMONEY_CONCURRENCY ?? 1);
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 10) throw new Error('TAPMONEY_CONCURRENCY 必须是 1–10 的整数。');
-  config = normalizeConfig(config ?? await (configSource(env) === 'cloud' ? remoteConfig(env) : loadConfig()));
+  config = normalizeConfig(config ?? await loadConfig());
   const previous = await readJson(outputFile, { games: [] });
   const oldBoards = new Map(boardsOf(previous).map(board => [board.id, board]));
   const dates = periods(now);

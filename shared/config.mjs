@@ -36,9 +36,4 @@ export function normalizeGames(list) {
       ...(item.queryDeveloperId ? {queryDeveloperId:validId(item.queryDeveloperId, 'queryDeveloperId')} : {}) };
   });
 }
-export function configSource(env) {
-  const source = env.TAPMONEY_CONFIG_SOURCE || 'repository';
-  if (!['repository', 'cloud'].includes(source)) throw new Error('TAPMONEY_CONFIG_SOURCE 只能是 repository 或 cloud。');
-  return source;
-}
 

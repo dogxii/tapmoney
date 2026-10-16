@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeConfig } from '../shared/catalog.mjs';
 import { boardAtPath, boardPath, boardSnapshot } from '../shared/boards.mjs';
-import { publicRanking } from '../server/api.mjs';
+import { publicRanking } from '../shared/snapshot.mjs';
 
 const game = { appId: '1', name: '同一款游戏', totalStartDate: '2020-01-01' };
 const author = { id: 'maker', name: '群友作者', gameIds: ['1'], qq: '12345678' };

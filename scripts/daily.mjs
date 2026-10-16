@@ -2,9 +2,7 @@ import path from 'node:path';
 import { mkdir, rmdir } from 'node:fs/promises';
 import { ROOT, loadEnv, printError } from './lib.mjs';
 import { collect } from './collect.mjs';
-import { deploy } from './deploy.mjs';
-import { uploadSnapshot } from './sync.mjs';
-import { configSource } from '../shared/config.mjs';
+import { build } from './build.mjs';
 
 const lock = path.join(ROOT, '.local/daily.lock');
 await mkdir(path.dirname(lock), { recursive: true });
@@ -20,13 +18,9 @@ try {
 try {
   const env = await loadEnv();
   const collectOnly = process.argv.includes('--collect-only');
-  if (!collectOnly && !env.CLOUDFLARE_PAGES_PROJECT) throw new Error('每日采集并发布需要 CLOUDFLARE_PAGES_PROJECT；仅本地采集可加 --collect-only。');
   console.log(`[${new Date().toISOString()}] 开始每日更新。`);
   await collect({ env });
-  if (!collectOnly) {
-    if (configSource(env) === 'cloud') await uploadSnapshot(env);
-    await deploy(env);
-  }
-  console.log('每日更新完成。');
+  if (!collectOnly) await build({ env });
+  console.log(collectOnly ? '每日采集完成。' : '每日采集和静态构建完成。');
 } catch (error) { printError(error); }
 finally { await rmdir(lock); }

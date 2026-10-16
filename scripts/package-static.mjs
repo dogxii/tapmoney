@@ -80,7 +80,7 @@ async function writeSql({ output, snapshot, config, updatedAt }) {
   const snapshotBody = JSON.stringify(snapshot);
   const configBody = JSON.stringify(config);
   const sql = [
-    '-- TapMoney static snapshot; compatible with server/schema.sql and Cloudflare D1.',
+    '-- TapMoney static snapshot exported to a portable SQLite documents table.',
     'PRAGMA foreign_keys = OFF;',
     'BEGIN;',
     'CREATE TABLE IF NOT EXISTS documents (key TEXT PRIMARY KEY, body TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);',
@@ -109,7 +109,7 @@ export async function packageStatic({ source = DEFAULT_SOURCE, output = path.joi
   const updatedAt = snapshot.generatedAt || new Date().toISOString();
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
-  await build({ env: { TAPMONEY_CONFIG_SOURCE: 'repository' }, snapshot, directory: output });
+  await build({ snapshot, directory: output });
   await rm(path.join(output, '.DS_Store'), { force: true });
   if (selected.redirectFrom) await writeFile(path.join(output, '_redirects'), `${selected.redirectFrom} / 301\n`);
   await mkdir(path.join(output, 'backup'), { recursive: true });
@@ -133,7 +133,7 @@ export async function packageStatic({ source = DEFAULT_SOURCE, output = path.joi
     'TapMoney 静态数据包',
     '',
     '直接将此目录作为静态站点根目录即可部署。页面使用 data/ 下的 JSON，不依赖 /api 接口。',
-    `backup/ranking.json 是${board ? `“${snapshot.boards[0].name}”单榜快照` : '线上快照'}；backup/tapmoney.sql 可导入 SQLite / D1 兼容 documents 表；backup/tapmoney.sqlite 是同一份 SQL 的 SQLite 文件。`,
+    `backup/ranking.json 是${board ? `“${snapshot.boards[0].name}”单榜快照` : '线上快照'}；backup/tapmoney.sql 和 backup/tapmoney.sqlite 是便携式 SQLite 备份。`,
     ...(selected.redirectFrom ? [`旧路径 ${selected.redirectFrom} 会重定向到首页。`] : []),
     `数据源：${loaded.source}`,
     `快照时间：${snapshot.generatedAt ?? '未知'}`,

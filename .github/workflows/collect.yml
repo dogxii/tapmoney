@@ -14,9 +14,6 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      TAPMONEY_CONFIG_SOURCE: ${{ vars.TAPMONEY_CONFIG_SOURCE || 'repository' }}
-      TAPMONEY_API_URL: ${{ vars.TAPMONEY_API_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,13 +26,8 @@ jobs:
       - run: npm test
       - run: npm run collect
         env:
-          TAPMONEY_ADMIN_TOKEN: ${{ secrets.TAPMONEY_ADMIN_TOKEN }}
           TAPTAP_COOKIE: ${{ secrets.TAPTAP_COOKIE }}
           TAPTAP_DEVELOPER_ID: ${{ secrets.TAPTAP_DEVELOPER_ID }}
-      - if: env.TAPMONEY_CONFIG_SOURCE == 'cloud'
-        run: npm run snapshot:upload
-        env:
-          TAPMONEY_ADMIN_TOKEN: ${{ secrets.TAPMONEY_ADMIN_TOKEN }}
       - name: Commit public snapshot
         run: |
           git config user.name 'github-actions[bot]'
