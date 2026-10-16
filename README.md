@@ -159,7 +159,7 @@ npm run package:static
 npm run package:static -- --local
 ```
 
-输出目录本身就是静态站点根目录，上传到 Cloudflare Pages、Nginx 或其他静态托管即可；页面只读取 `data/` 下的 JSON，不依赖 `/api`。`backup/ranking.json` 保存原始快照，`backup/tapmoney.sql` 是可导入 SQLite / D1 `documents` 表的备份，`backup/tapmoney.sqlite` 是同一份数据的 SQLite 文件，`backup/MANIFEST.json` 记录来源和 SHA-256。也可以指定 `--source URL|文件` 和 `--output 目录`。
+输出目录本身就是静态站点根目录，上传到 Cloudflare Pages、Nginx 或其他静态托管即可；页面只读取 `data/` 下的 JSON，不依赖 `/api`。`backup/ranking.json` 保存打包快照，`backup/tapmoney.sql` 是可导入 SQLite / D1 `documents` 表的备份，`backup/tapmoney.sqlite` 是同一份数据的 SQLite 文件，`backup/MANIFEST.json` 记录来源和 SHA-256。也可以指定 `--source URL|文件`、`--board 榜单ID` 和 `--output 目录`；指定 `--board hot` 会只保留热门榜并把它改为首页 `/`，旧 `/hot` 路径会重定向到首页。
 
 ## 数据与导出
 

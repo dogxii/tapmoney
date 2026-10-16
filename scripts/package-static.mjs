@@ -33,19 +33,35 @@ function runSqlite(file, sql) {
 }
 
 function parseArgs(argv) {
-  const options = { source: DEFAULT_SOURCE, output: path.join(ROOT, 'output', `tapmoney-static-${dateStamp()}`) };
+  const options = { source: DEFAULT_SOURCE, output: path.join(ROOT, 'output', `tapmoney-static-${dateStamp()}`), board: null };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
     if (arg === '--source') options.source = argv[++index];
     else if (arg === '--output') options.output = path.resolve(argv[++index]);
     else if (arg === '--local') options.source = path.join(ROOT, 'site/data/ranking.json');
+    else if (arg === '--board') options.board = argv[++index];
     else if (arg === '--help') {
-      console.log('用法：node scripts/package-static.mjs [--local] [--source URL|文件] [--output 目录]');
+      console.log('用法：node scripts/package-static.mjs [--local] [--source URL|文件] [--board ID] [--output 目录]');
       process.exit(0);
     } else throw new Error(`未知参数：${arg}`);
   }
   if (!options.source) throw new Error('数据源不能为空。');
   return options;
+}
+
+function selectBoard(snapshot, config, boardId) {
+  if (!boardId) return { snapshot, config, redirectFrom: null };
+  const board = snapshot.boards.find(item => item.id === boardId);
+  if (!board) throw new Error(`找不到榜单：${boardId}`);
+  // 单榜静态包把目标榜的原子路径改成首页，保留稳定的榜单 ID 和全部详情数据。
+  const selected = { ...board, slug: '' };
+  const redirectFrom = board.slug ? `/${board.slug}` : null;
+  const configured = (config.boards ?? []).find(item => item.id === boardId);
+  const selectedConfig = configured ? { ...configured, slug: '' } : {
+    id: selected.id, name: selected.name, slug: '',
+    games: selected.games.map(({ appId, name, iconUrl, totalStartDate }) => ({ appId, name, iconUrl, totalStartDate })), authors: []
+  };
+  return { snapshot: { ...snapshot, boards: [selected] }, config: { ...config, boards: [selectedConfig] }, redirectFrom };
 }
 
 async function readSource(source) {
@@ -80,26 +96,32 @@ async function writeSql({ output, snapshot, config, updatedAt }) {
   return { sqlFile, sqliteFile };
 }
 
-export async function packageStatic({ source = DEFAULT_SOURCE, output = path.join(ROOT, 'output', `tapmoney-static-${dateStamp()}`) } = {}) {
+export async function packageStatic({ source = DEFAULT_SOURCE, output = path.join(ROOT, 'output', `tapmoney-static-${dateStamp()}`), board = null } = {}) {
   const loaded = await readSource(source);
   const text = loaded.buffer.toString('utf8');
-  let snapshot;
-  try { snapshot = JSON.parse(text); } catch { throw new Error('数据源不是有效 JSON。'); }
-  if (snapshot.schemaVersion !== 2 || !Array.isArray(snapshot.boards)) throw new Error('数据源不是 TapMoney schemaVersion 2 快照。');
-  const config = await readJson(path.join(ROOT, 'config/boards.json'), { boards: snapshot.boards.map(({ id, name, slug, games }) => ({ id, name, slug, games, authors: [] })) });
+  let sourceSnapshot;
+  try { sourceSnapshot = JSON.parse(text); } catch { throw new Error('数据源不是有效 JSON。'); }
+  if (sourceSnapshot.schemaVersion !== 2 || !Array.isArray(sourceSnapshot.boards)) throw new Error('数据源不是 TapMoney schemaVersion 2 快照。');
+  const sourceConfig = await readJson(path.join(ROOT, 'config/boards.json'), { boards: sourceSnapshot.boards.map(({ id, name, slug, games }) => ({ id, name, slug, games, authors: [] })) });
+  const selected = selectBoard(sourceSnapshot, sourceConfig, board);
+  const snapshot = selected.snapshot;
+  const config = selected.config;
   const updatedAt = snapshot.generatedAt || new Date().toISOString();
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   await build({ env: { TAPMONEY_CONFIG_SOURCE: 'repository' }, snapshot, directory: output });
   await rm(path.join(output, '.DS_Store'), { force: true });
+  if (selected.redirectFrom) await writeFile(path.join(output, '_redirects'), `${selected.redirectFrom} / 301\n`);
   await mkdir(path.join(output, 'backup'), { recursive: true });
-  await writeFile(path.join(output, 'backup', 'ranking.json'), text.endsWith('\n') ? text : `${text}\n`);
+  await writeFile(path.join(output, 'backup', 'ranking.json'), `${JSON.stringify(snapshot)}\n`);
   await writeFile(path.join(output, 'backup', 'config.json'), `${JSON.stringify(config, null, 2)}\n`);
   const sql = await writeSql({ output, snapshot, config, updatedAt });
   const manifest = {
     format: 'tapmoney-static-package-v1',
     source: loaded.source,
     sourceSha256: sha256(loaded.buffer),
+    boardFilter: board,
+    redirectFrom: selected.redirectFrom,
     generatedAt: new Date().toISOString(),
     snapshotGeneratedAt: snapshot.generatedAt ?? null,
     asOf: snapshot.asOf ?? null,
@@ -111,7 +133,8 @@ export async function packageStatic({ source = DEFAULT_SOURCE, output = path.joi
     'TapMoney 静态数据包',
     '',
     '直接将此目录作为静态站点根目录即可部署。页面使用 data/ 下的 JSON，不依赖 /api 接口。',
-    'backup/ranking.json 是线上快照原文；backup/tapmoney.sql 可导入 SQLite / D1 兼容 documents 表；backup/tapmoney.sqlite 是同一份 SQL 的 SQLite 文件。',
+    `backup/ranking.json 是${board ? `“${snapshot.boards[0].name}”单榜快照` : '线上快照'}；backup/tapmoney.sql 可导入 SQLite / D1 兼容 documents 表；backup/tapmoney.sqlite 是同一份 SQL 的 SQLite 文件。`,
+    ...(selected.redirectFrom ? [`旧路径 ${selected.redirectFrom} 会重定向到首页。`] : []),
     `数据源：${loaded.source}`,
     `快照时间：${snapshot.generatedAt ?? '未知'}`,
     `源文件 SHA-256：${manifest.sourceSha256}`,
